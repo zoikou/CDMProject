@@ -24,7 +24,7 @@ function init(){
   //add the objects
   createTurtle();
   createSea();
-
+  createBottle();
   //add the listener for the mouse interaction
   document.addEventListener('mousemove', handleMouseMove, false);
 
@@ -124,9 +124,14 @@ function createLights(){
   shadowLight.shadow.mapSize.width = 2048;
   shadowLight.shadow.mapSize.height = 2048;
 
+  // an ambient light modifies the global color of a scene and makes the shadows softer
+  ambientLight = new THREE.AmbientLight(0xdc8874, .5);
+
+
   //to activate the lights must be added to the scene
   scene.add(hemisphereLight);
   scene.add(shadowLight);
+  scene.add(ambientLight);
 }
 
 var turtleModel = function (){
@@ -340,14 +345,7 @@ var turtleModel = function (){
  
 }
 
-var turtle;
 
-function createTurtle(){
-  turtle = new turtleModel();
-  turtle.mesh.scale.set(.40, .40, .40);
-  turtle.mesh.position.y= 100;
-  scene.add(turtle.mesh);  
-}
 
 fishGroup = function (){
   //create an empty container that will hold the fishes
@@ -442,6 +440,101 @@ for(var i=0; i<this.nFishGroups; i++){
   }
 }
 
+bottle = function (){
+  this.mesh = new THREE.Object3D();
+
+  var geomBottle = new THREE.CylinderGeometry(3,3,14,10,10);
+  // create the material 
+  var matBottle = new THREE.MeshPhongMaterial({
+    color:Colors.softwhite,
+    transparent:true,
+    opacity:.6,
+    shading:THREE.FlatShading,
+  });
+  var bottle = new THREE.Mesh(geomBottle, matBottle);
+  bottle.castShadow = true;
+  bottle.receiveShadow = true;
+  this.mesh.add(bottle);
+
+  var geomCap = new THREE.CylinderGeometry(1.5,1.5,2,10,10);
+  var matCap = new THREE.MeshPhongMaterial({
+    color:Colors.blue,
+    shading:THREE.FlatShading,
+  });
+  var cap = new THREE.Mesh(geomCap, matCap);
+  cap.position.y = 8;
+  cap.castShadow = true;
+  cap.receiveShadow = true;
+  this.mesh.add(cap);
+
+}
+
+straw = function(){
+  this.mesh = new THREE.Object3D();
+  var geomStraw= new THREE.CylinderGeometry(.6,.6,14,3,3);
+  var matStraw = new THREE.MeshPhongMaterial({
+    color:Colors.red,
+    shading:THREE.FlatShading,
+  });
+  geomStraw.vertices[0].x+=3;
+  geomStraw.vertices[1].x+=3;
+  geomStraw.vertices[2].x+=3;
+  var straw = new THREE.Mesh(geomStraw, matStraw);
+  straw.castShadow = true;
+  straw.receiveShadow = true;
+  this.mesh.add(straw);
+}
+
+plastic = function(){
+    this.mesh = new THREE.Object3D();
+    var loader = new THREE.TextureLoader();
+    var plasticTexture = loader.load( '../CDMProject/assets/textures/plastic.jpg' );
+    plasticTexture.anisotropy = 16;
+    var plasticMaterial = new THREE.MeshLambertMaterial( {
+      map: plasticTexture,
+      side: THREE.DoubleSide,
+      alphaTest: 0.5
+    } );
+    // cloth geometry
+    plasticGeometry = new THREE.ParametricGeometry( clothFunction, cloth.w, cloth.h );
+    // cloth mesh
+    plastic = new THREE.Mesh( plasticGeometry, plasticMaterial );
+    plastic.castShadow = true;
+    this.mesh.add(plastic);
+        
+}
+
+
+var bottle;
+var straw;
+var plastic;
+
+function createBottle(){
+  bottle = new bottle();
+  bottle.mesh.position.y= 100;
+  bottle.mesh.position.x= 30;
+
+  straw = new straw();
+  straw.mesh.position.y= 100;
+  
+  plastic = new plastic();
+  plastic.mesh.position.y= 100;
+  plastic.mesh.position.x= -30;
+
+  scene.add(bottle.mesh);  
+  scene.add(straw.mesh);  
+  scene.add(plastic.mesh);
+}
+
+var turtle;
+
+function createTurtle(){
+  turtle = new turtleModel();
+  turtle.mesh.scale.set(.40, .40, .40);
+  turtle.mesh.position.y= 100;
+  scene.add(turtle.mesh);  
+}
+
 var sea;
 
 function createSea(){
@@ -495,9 +588,12 @@ function updateTurtle(){
    var targetX = normalize(mousePos.x, -1, 1, -100, 100);
    var targetY = normalize(mousePos.y, -1, 1, 25, 175);
 
-   //update the turtle position
-   turtle.mesh.position.y= targetY;
-   turtle.mesh.position.x= targetX;
+   // Move the turtle at each frame by adding a fraction of the remaining distance
+  turtle.mesh.position.y += (targetY-turtle.mesh.position.y)*0.1;
+
+  // Rotate the turtle proportionally to the remaining distance
+  turtle.mesh.rotation.z = (targetY-turtle.mesh.position.y)*0.0128;
+  turtle.mesh.rotation.x = (turtle.mesh.position.y-targetY)*0.0064;
 
 }
 

@@ -11,30 +11,61 @@ var Colors = {
     red:0xf25346,
 };
 
-window.addEventListener('load', init, false);
+// GAME VARIABLES
+var game;
+var deltaTime = 0;
+var newTime = new Date().getTime();
+var oldTime = new Date().getTime();
+var rubbishPool = [];
+var particlesContainer = [];
+var particlesInUse = [];
 
-function init(){
+function resetGame(){
+  game = {speed:.00050,
+          initSpeed:.00035,
+        
+          distance:0,
+          ratioSpeedDistance:50,
+          energy:100,
+          ratioSpeedEnergy:3,
 
-  //set up the scene, camera and the renderer
-  createScene();
+          turtleDefaultHeight:100,
+          turtleAmpHeight:80,
+          turtleAmpWidth:100,
+          turtleMoveSensivity:0.005,
+          turtleRotXSensivity:0.0008,
+          turtleRotZSensivity:0.0004,
+          turtleFallSpeed:.001,
+          turtleMinSpeed:1.2,
+          turtleMaxSpeed:1.6,
+          turtleSpeed:0,
+          turtleCollisionDisplacementX:0,
+          turtleCollisionSpeedX:0,
 
-  //add the lights
-  createLights();
+          turtleCollisionDisplacementY:0,
+          turtleCollisionSpeedY:0,
 
-  //add the objects
-  createTurtle();
-  createSea();
-  createBottle();
-  //add the listener for the mouse interaction
-  document.addEventListener('mousemove', handleMouseMove, false);
+          seaRadius:600,
 
-  //start a loop that will update object's position
-  //and render the scene on each frame
-  loop();
+          cameraFarPos:500,
+          cameraNearPos:150,
+          cameraSensivity:0.002,
+
+          rubbishDistanceTolerance:10,
+          rubbishValue:10,
+          rubbishSpeed:.6,
+          rubbishLastSpawn:0,
+          distanceForRubbishSpawn:50,
+
+          status : "playing",
+         };
+  //fieldLevel.innerHTML = Math.floor(game.level);
 }
 
+
+
 //THREE RELATED VARIABLES
-var scene, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH, renderer, container, clock; // controls;
+var scene, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH, renderer, container, clock, controls;
 
 function createScene(){
   HEIGHT= window.innerHeight;
@@ -81,7 +112,7 @@ function createScene(){
   container = document.getElementById('world');
   container.appendChild(renderer.domElement);
 
-  //controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
 
   // listen to the screen: if the user resizes it, the camera and the renderer size should be updated
   window.addEventListener('resize', handleWindowResize, false);
@@ -136,6 +167,7 @@ function createLights(){
 
 var turtleModel = function (){
   this.mesh = new THREE.Object3D();
+  this.mesh.name = "turtle";
   
   // Create the body
   var geombobyPart1 = new THREE.BoxGeometry(100,45,50,1,1,1);
@@ -442,7 +474,6 @@ for(var i=0; i<this.nFishGroups; i++){
 
 bottle = function (){
   this.mesh = new THREE.Object3D();
-
   var geomBottle = new THREE.CylinderGeometry(3,3,14,10,10);
   // create the material 
   var matBottle = new THREE.MeshPhongMaterial({
@@ -466,11 +497,13 @@ bottle = function (){
   cap.castShadow = true;
   cap.receiveShadow = true;
   this.mesh.add(cap);
+  this.angle = 0;
+  this.dist = 0;
 
 }
 
+
 straw = function(){
-  this.mesh = new THREE.Object3D();
   var geomStraw= new THREE.CylinderGeometry(.6,.6,14,3,3);
   var matStraw = new THREE.MeshPhongMaterial({
     color:Colors.red,
@@ -479,51 +512,187 @@ straw = function(){
   geomStraw.vertices[0].x+=3;
   geomStraw.vertices[1].x+=3;
   geomStraw.vertices[2].x+=3;
-  var straw = new THREE.Mesh(geomStraw, matStraw);
-  straw.castShadow = true;
-  straw.receiveShadow = true;
-  this.mesh.add(straw);
+  
+  this.mesh = new THREE.Mesh(geomStraw, matStraw);
+  this.mesh.castShadow = true;
+  this.angle = 0;
+  this.dist = 0;
 }
 
+
 plastic = function(){
-    this.mesh = new THREE.Object3D();
     var loader = new THREE.TextureLoader();
-    var plasticTexture = loader.load( '../CDMProject/assets/textures/plastic.jpg' );
+
+    var plasticTexture = loader.load( 'assets/textures/plasticW.jpg' );
     plasticTexture.anisotropy = 16;
-    var plasticMaterial = new THREE.MeshLambertMaterial( {
+    var plasticMaterial = new THREE.MeshBasicMaterial( {
       map: plasticTexture,
       side: THREE.DoubleSide,
-      alphaTest: 0.5
+      transparent:true,
+      opacity:.5,
     } );
-    // cloth geometry
-    plasticGeometry = new THREE.ParametricGeometry( clothFunction, cloth.w, cloth.h );
-    // cloth mesh
-    plastic = new THREE.Mesh( plasticGeometry, plasticMaterial );
-    plastic.castShadow = true;
-    this.mesh.add(plastic);
+    // plastic geometry
+    var plasticGeometry = new THREE.PlaneGeometry( 20, 20, 5, 5 );
+    //to ensure the continuity of the plastic waves
+    plasticGeometry.mergeVertices();
+    //get the vertices
+    var length = plasticGeometry.vertices.length;
+    //create an empty array to store the new data for each vertex
+    this.waves = [];
+    for (var i=0; i<length; i++){
+    // get each vertex
+    var v = plasticGeometry.vertices[i];
+
+    // store some data associated to it
+    this.waves.push({y:v.y,
+                     x:v.x,
+                     z:v.z,
+                     // a random angle
+                     ang:Math.random()*Math.PI*2,
+                     // a random distance
+                     amp:Math.random()*2,
+                     // a random speed between 0.016 and 0.048 radians / frame
+                     speed:0.016 + Math.random()*0.032
+                    });
+  };
+    // plastic mesh
+    this.mesh = new THREE.Mesh( plasticGeometry, plasticMaterial );
+    this.mesh.castShadow = true;
+    this.angle = 0;
+    this.dist = 0;
         
 }
 
+// create the function that will be called in each frame 
+// to update the position of the vertices to simulate the waves
 
-var bottle;
-var straw;
-var plastic;
-
-function createBottle(){
-  bottle = new bottle();
-  bottle.mesh.position.y= 100;
-  bottle.mesh.position.x= 30;
-
-  straw = new straw();
-  straw.mesh.position.y= 100;
+plastic.prototype.update = function (){
   
-  plastic = new plastic();
-  plastic.mesh.position.y= 100;
-  plastic.mesh.position.x= -30;
+  // get the vertices
+  var verts = this.mesh.geometry.vertices;
+  var l = verts.length;
+  
+  for (var i=0; i<l; i++){
+    var v = verts[i];
+    
+    // get the data associated to it
+    var vprops = this.waves[i];
+    
+    // update the position of the vertex
+    v.x = vprops.x + Math.cos(vprops.ang)*vprops.amp;
+    v.y = vprops.y + Math.sin(vprops.ang)*vprops.amp;
 
-  scene.add(bottle.mesh);  
-  scene.add(straw.mesh);  
-  scene.add(plastic.mesh);
+    // increment the angle for the next frame
+    vprops.ang += vprops.speed;
+
+  }
+
+  // Tell the renderer that the geometry of the plastic has changed.
+  
+  this.mesh.geometry.verticesNeedUpdate=true;
+
+  this.mesh.rotation.z += .005;
+}
+
+//A mesh that hold all the rubbish created in the scene
+RubbishHolder = function (){
+  this.mesh = new THREE.Object3D();
+  
+  this.rubbishInUse = [];
+}
+
+RubbishHolder.prototype.spawnRubbish = function(){
+  var nRubbish = 3;
+
+  for (var i=0; i<nRubbish; i++){
+    var rubbish;
+    if (rubbishPool.length) {
+      rubbish = rubbishPool.pop();
+    }else{
+       var random = Math.random();
+       if(random <= -0.25){
+         rubbish = new bottle();
+       }
+       else if( random >= 0.25){
+         rubbish = new straw();
+       }
+       else{
+         rubbish = new plastic();
+       }
+     
+      
+    }
+
+    rubbish.angle = - (i*0.1);
+    rubbish.distance = game.seaRadius + game.turtleDefaultHeight + (-1 + Math.random() * 2) * (game.turtleAmpHeight-20);
+    rubbish.mesh.position.y = -game.seaRadius + Math.sin(rubbish.angle)*rubbish.distance;
+    rubbish.mesh.position.x = Math.cos(rubbish.angle)*rubbish.distance;
+    //rubbish.mesh.position.y = 100 - Math.random();
+
+    this.mesh.add(rubbish.mesh);
+    this.rubbishInUse.push(rubbish);
+  }
+}
+
+RubbishHolder.prototype.rotateRubbish = function(){
+  for (var i=0; i<this.rubbishInUse.length; i++){
+    var rubbish = this.rubbishInUse[i];
+    
+    //rubbish.update();
+
+    rubbish.angle += game.speed*deltaTime*game.rubbishSpeed;
+
+    if (rubbish.angle > Math.PI*2) rubbish.angle -= Math.PI*2;
+
+    rubbish.mesh.position.y = -game.seaRadius + Math.sin(rubbish.angle)*rubbish.distance;
+    rubbish.mesh.position.x = Math.cos(rubbish.angle)*rubbish.distance;
+    rubbish.mesh.rotation.z += Math.random()*.1;
+    rubbish.mesh.rotation.y += Math.random()*.1;
+
+    //var globalEnnemyPosition =  ennemy.mesh.localToWorld(new THREE.Vector3());
+    /*var diffPos = airplane.mesh.position.clone().sub(ennemy.mesh.position.clone());
+    var d = diffPos.length();
+    if (d<game.ennemyDistanceTolerance){
+      particlesHolder.spawnParticles(ennemy.mesh.position.clone(), 15, Colors.red, 3);
+
+      ennemiesPool.unshift(this.ennemiesInUse.splice(i,1)[0]);
+      this.mesh.remove(ennemy.mesh);
+      game.planeCollisionSpeedX = 100 * diffPos.x / d;
+      game.planeCollisionSpeedY = 100 * diffPos.y / d;
+      ambientLight.intensity = 2;
+
+      removeEnergy();
+      i--;
+    }else if (ennemy.angle > Math.PI){
+      ennemiesPool.unshift(this.ennemiesInUse.splice(i,1)[0]);
+      this.mesh.remove(ennemy.mesh);
+      i--;
+    }*/
+  }
+}
+
+
+//var bottle;
+//var straw;
+//var plastic;
+//var rubbishHolder;
+
+function createRubbish(){
+  //plastic = new plastic(); 
+  //plastic.mesh.position.x = 50;
+  //plastic.mesh.position.y = 100;
+  
+  // var bottleR = new bottle();
+  // var strawR = new straw();
+  // var plasticR = new plastic();
+  // rubbishPool.push(bottleR);
+  // rubbishPool.push(strawR);
+  // rubbishPool.push(plasticR);
+  rubbishHolder = new RubbishHolder();
+  //rubbishHolder.mesh.position.y = -game.seaRadius; 
+  //scene.add(plastic.mesh);
+  scene.add(rubbishHolder.mesh);
+
 }
 
 var turtle;
@@ -560,6 +729,11 @@ function handleMouseMove(event){
 }
 
 function loop(){
+
+  newTime = new Date().getTime();
+  deltaTime = newTime-oldTime;
+  oldTime = newTime;
+
   TWEEN.update();
   var timeElapsed = clock.getElapsedTime();
   sea.mesh.rotation.z += .005;
@@ -571,13 +745,27 @@ function loop(){
 
     })
   });
-  
+  //plastic.update();
   updateTurtle();
+  
+
+  if (game.status=="playing"){
+
+    if (Math.floor(game.distance)%game.distanceForRubbishSpawn == 0 && Math.floor(game.distance) > game.rubbishLastSpawn){
+      game.rubbishLastSpawn = Math.floor(game.distance);
+      rubbishHolder.spawnRubbish();
+    }
+  }
+
+  rubbishHolder.spawnRubbish();
+
+  rubbishHolder.rotateRubbish();
   renderer.render(scene, camera);
-  //controls.update();
+  controls.update();
   requestAnimationFrame(loop);
 
 }
+
 
 function updateTurtle(){
    //the turtle will move between -100 and 100 on the horizontal axis,
@@ -608,3 +796,29 @@ function normalize(v,vmin,vmax,tmin, tmax){
   return tv;
 
 }
+
+
+function init(){
+
+  resetGame();
+
+
+  //set up the scene, camera and the renderer
+  createScene();
+
+  //add the lights
+  createLights();
+
+  //add the objects
+  createTurtle();
+  createSea();
+  createRubbish();
+  //add the listener for the mouse interaction
+  document.addEventListener('mousemove', handleMouseMove, false);
+
+  //start a loop that will update object's position
+  //and render the scene on each frame
+  loop();
+}
+
+window.addEventListener('load', init, false);

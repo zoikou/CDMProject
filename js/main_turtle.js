@@ -51,9 +51,9 @@ function resetGame(){
           cameraNearPos:150,
           cameraSensivity:0.002,
 
-          rubbishDistanceTolerance:10,
+          rubbishDistanceTolerance:30,
           rubbishValue:10,
-          rubbishSpeed:.6,
+          rubbishSpeed:.2,
           rubbishLastSpawn:0,
           distanceForRubbishSpawn:50,
 
@@ -112,7 +112,7 @@ function createScene(){
   container = document.getElementById('world');
   container.appendChild(renderer.domElement);
 
-  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  //controls = new THREE.OrbitControls(camera, renderer.domElement);
 
   // listen to the screen: if the user resizes it, the camera and the renderer size should be updated
   window.addEventListener('resize', handleWindowResize, false);
@@ -191,21 +191,21 @@ var turtleModel = function (){
   //create the head
   var geomhead = new THREE.BoxGeometry(25,20,20,1,1,1);
   var mathead = new THREE.MeshPhongMaterial({color: Colors.green, shading: THREE.FlatShading});
-  var head = new THREE.Mesh(geomhead, mathead);
-  head.position.x = 68;
-  head.position.y= 2;
-  head.castShadow = true;
-  head.receiveShadow = true;
-  this.mesh.add(head);
+  this.head = new THREE.Mesh(geomhead, mathead);
+  this.head.position.x = 68;
+  this.head.position.y= 2;
+  this.head.castShadow = true;
+  this.head.receiveShadow = true;
+  this.mesh.add(this.head);
 
   var geomouth = new THREE.BoxGeometry(17,5,20,1,1,1);
   var matmouth = new THREE.MeshPhongMaterial({color: Colors.green, shading: THREE.FlatShading});
-  var mouth = new THREE.Mesh(geomouth, matmouth);
-  mouth.position.x = 66;
-  mouth.position.y= -10;
-  mouth.castShadow = true;
-  mouth.receiveShadow = true;
-  this.mesh.add(mouth);
+  this.mouth = new THREE.Mesh(geomouth, matmouth);
+  this.mouth.position.x = 66;
+  this.mouth.position.y= -10;
+  this.mouth.castShadow = true;
+  this.mouth.receiveShadow = true;
+  this.mesh.add(this.mouth);
 
   var geomeyebig1 = new THREE.BoxGeometry(6,6,1,1,1,1);
   var mateyebig1 = new THREE.MeshPhongMaterial({color: Colors.softwhite, shading: THREE.FlatShading});
@@ -502,6 +502,11 @@ bottle = function (){
 
 }
 
+bottle.prototype.update = function(){
+  this.mesh.rotation.z += Math.random()*.1;
+  this.mesh.rotation.y += Math.random()*.1;
+}
+
 
 straw = function(){
   var geomStraw= new THREE.CylinderGeometry(.6,.6,14,3,3);
@@ -517,6 +522,15 @@ straw = function(){
   this.mesh.castShadow = true;
   this.angle = 0;
   this.dist = 0;
+}
+
+straw.prototype.update = function(){
+  var timeElapsed = clock.getElapsedTime();
+  var x= timeElapsed*5 + Math.random();
+  //this.mesh.scale.y= (Math.sin(x) + 1) / 2 + 0.8; 
+  this.mesh.scale.z= (noise.simplex2(x, x) + 1) / 2 + 0.1;
+  this.mesh.rotation.z += Math.random()*.1;
+  this.mesh.rotation.y += Math.random()*.1;
 }
 
 
@@ -610,10 +624,10 @@ RubbishHolder.prototype.spawnRubbish = function(){
       rubbish = rubbishPool.pop();
     }else{
        var random = Math.random();
-       if(random <= -0.25){
+       if(random <= 0.25){
          rubbish = new bottle();
        }
-       else if( random >= 0.25){
+       else if( random >= 0.75){
          rubbish = new straw();
        }
        else{
@@ -627,18 +641,20 @@ RubbishHolder.prototype.spawnRubbish = function(){
     rubbish.distance = game.seaRadius + game.turtleDefaultHeight + (-1 + Math.random() * 2) * (game.turtleAmpHeight-20);
     rubbish.mesh.position.y = -game.seaRadius + Math.sin(rubbish.angle)*rubbish.distance;
     rubbish.mesh.position.x = Math.cos(rubbish.angle)*rubbish.distance;
-    //rubbish.mesh.position.y = 100 - Math.random();
+    var s = Math.random()*1.5;
+    rubbish.mesh.scale.set(s,s,s);
 
     this.mesh.add(rubbish.mesh);
     this.rubbishInUse.push(rubbish);
   }
 }
-
+var openMouth = false;
 RubbishHolder.prototype.rotateRubbish = function(){
+  
   for (var i=0; i<this.rubbishInUse.length; i++){
     var rubbish = this.rubbishInUse[i];
     
-    //rubbish.update();
+    rubbish.update();
 
     rubbish.angle += game.speed*deltaTime*game.rubbishSpeed;
 
@@ -646,53 +662,49 @@ RubbishHolder.prototype.rotateRubbish = function(){
 
     rubbish.mesh.position.y = -game.seaRadius + Math.sin(rubbish.angle)*rubbish.distance;
     rubbish.mesh.position.x = Math.cos(rubbish.angle)*rubbish.distance;
-    rubbish.mesh.rotation.z += Math.random()*.1;
-    rubbish.mesh.rotation.y += Math.random()*.1;
+    
 
     //var globalEnnemyPosition =  ennemy.mesh.localToWorld(new THREE.Vector3());
-    /*var diffPos = airplane.mesh.position.clone().sub(ennemy.mesh.position.clone());
+    var diffPos = turtle.mesh.position.clone().sub(rubbish.mesh.position.clone());
     var d = diffPos.length();
-    if (d<game.ennemyDistanceTolerance){
-      particlesHolder.spawnParticles(ennemy.mesh.position.clone(), 15, Colors.red, 3);
+    if (d<game.rubbishDistanceTolerance){
+      //particlesHolder.spawnParticles(ennemy.mesh.position.clone(), 15, Colors.red, 3);
 
-      ennemiesPool.unshift(this.ennemiesInUse.splice(i,1)[0]);
-      this.mesh.remove(ennemy.mesh);
-      game.planeCollisionSpeedX = 100 * diffPos.x / d;
-      game.planeCollisionSpeedY = 100 * diffPos.y / d;
+      rubbishPool.unshift(this.rubbishInUse.splice(i,1)[0]);
+      this.mesh.remove(rubbish.mesh);
+      game.turtleCollisionSpeedX = 1 * diffPos.x / d;
+      game.turtleCollisionSpeedY = 1 * diffPos.y / d;
       ambientLight.intensity = 2;
+      openMouth = true;
+      
+      new TWEEN.Tween({val: turtle.head.position.y - 12})
+      .to({val: turtle.head.position.y - 17}, 250)
+      .easing(TWEEN.Easing.Quartic.Out)
+      .onUpdate(function(openMouth){
+        if(openMouth){
+         turtle.mouth.position.y = this.val;
+        }
+      })
+      .onComplete(function(){
+        openMouth = false;
+        turtle.mouth.position.y = turtle.head.position.y - 12;
+      })
+      .start();
 
-      removeEnergy();
+      //removeEnergy();
       i--;
-    }else if (ennemy.angle > Math.PI){
-      ennemiesPool.unshift(this.ennemiesInUse.splice(i,1)[0]);
-      this.mesh.remove(ennemy.mesh);
+    }else if (rubbish.angle > Math.PI){
+      rubbishPool.unshift(this.rubbishInUse.splice(i,1)[0]);
+      this.mesh.remove(rubbish.mesh);
       i--;
-    }*/
+    }
   }
 }
 
 
-//var bottle;
-//var straw;
-//var plastic;
-//var rubbishHolder;
-
 function createRubbish(){
-  //plastic = new plastic(); 
-  //plastic.mesh.position.x = 50;
-  //plastic.mesh.position.y = 100;
-  
-  // var bottleR = new bottle();
-  // var strawR = new straw();
-  // var plasticR = new plastic();
-  // rubbishPool.push(bottleR);
-  // rubbishPool.push(strawR);
-  // rubbishPool.push(plasticR);
   rubbishHolder = new RubbishHolder();
-  //rubbishHolder.mesh.position.y = -game.seaRadius; 
-  //scene.add(plastic.mesh);
   scene.add(rubbishHolder.mesh);
-
 }
 
 var turtle;
@@ -745,10 +757,7 @@ function loop(){
 
     })
   });
-  //plastic.update();
-  updateTurtle();
   
-
   if (game.status=="playing"){
 
     if (Math.floor(game.distance)%game.distanceForRubbishSpawn == 0 && Math.floor(game.distance) > game.rubbishLastSpawn){
@@ -756,32 +765,59 @@ function loop(){
       rubbishHolder.spawnRubbish();
     }
   }
+  
+  ambientLight.intensity += (.5 - ambientLight.intensity)*deltaTime*0.005;
 
-  rubbishHolder.spawnRubbish();
+  updateTurtle();
+  updateDistance();
 
   rubbishHolder.rotateRubbish();
   renderer.render(scene, camera);
-  controls.update();
+  //controls.update();
   requestAnimationFrame(loop);
 
 }
 
-
+function updateDistance(){
+  game.distance += game.speed*deltaTime*game.ratioSpeedDistance;
+  //fieldDistance.innerHTML = Math.floor(game.distance);
+  //var d = 502*(1-(game.distance%game.distanceForLevelUpdate)/game.distanceForLevelUpdate);
+  //levelCircle.setAttribute("stroke-dashoffset", d);
+}
 function updateTurtle(){
    //the turtle will move between -100 and 100 on the horizontal axis,
    //and between 25 and 175 on the vertical axis
    //depending on the mouse position varying between -1 and 1 on both axis
    //to achieve that a normalized function is used
 
-   var targetX = normalize(mousePos.x, -1, 1, -100, 100);
-   var targetY = normalize(mousePos.y, -1, 1, 25, 175);
+  game.turtleSpeed = normalize(mousePos.x,-.5,.5,game.turtleMinSpeed, game.turtleMaxSpeed);
+  var targetY = normalize(mousePos.y,-.75,.75,game.turtleDefaultHeight-game.turtleAmpHeight, game.turtleDefaultHeight+game.turtleAmpHeight);
+  var targetX = normalize(mousePos.x,-1,1,-game.turtleAmpWidth*.7, -game.turtleAmpWidth);
+
+   //Update the collision box of the turtle
+  game.turtleCollisionDisplacementX += game.turtleCollisionSpeedX;
+  targetX += game.turtleCollisionDisplacementX;
+
+  game.turtleCollisionDisplacementY += game.turtleCollisionSpeedY;
+  targetY += game.turtleCollisionDisplacementY;
 
    // Move the turtle at each frame by adding a fraction of the remaining distance
-  turtle.mesh.position.y += (targetY-turtle.mesh.position.y)*0.1;
+  turtle.mesh.position.y += (targetY-turtle.mesh.position.y)*deltaTime*game.turtleMoveSensivity;
+  turtle.mesh.position.x += (targetX-turtle.mesh.position.x)*deltaTime*game.turtleMoveSensivity;
 
   // Rotate the turtle proportionally to the remaining distance
-  turtle.mesh.rotation.z = (targetY-turtle.mesh.position.y)*0.0128;
-  turtle.mesh.rotation.x = (turtle.mesh.position.y-targetY)*0.0064;
+  turtle.mesh.rotation.z = (targetY-turtle.mesh.position.y)*deltaTime*game.turtleRotXSensivity;
+  turtle.mesh.rotation.x = (turtle.mesh.position.y-targetY)*deltaTime*game.turtleRotZSensivity;
+
+  var targetCameraZ = normalize(game.turtleSpeed, game.turtleMinSpeed, game.turtleMaxSpeed, game.cameraNearPos, game.cameraFarPos);
+  camera.fov = normalize(mousePos.x,-1,1,40, 80);
+  camera.updateProjectionMatrix ()
+  camera.position.y += (turtle.mesh.position.y - camera.position.y)*deltaTime*game.cameraSensivity;
+
+  game.turtleCollisionSpeedX += (0-game.turtleCollisionSpeedX)*deltaTime * 0.03;
+  game.turtleCollisionDisplacementX += (0-game.turtleCollisionDisplacementX)*deltaTime *0.01;
+  game.turtleCollisionSpeedY += (0-game.turtleCollisionSpeedY)*deltaTime * 0.03;
+  game.turtleCollisionDisplacementY += (0-game.turtleCollisionDisplacementY)*deltaTime *0.01;
 
 }
 

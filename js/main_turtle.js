@@ -27,7 +27,6 @@ function resetGame(){
           distance:0,
           ratioSpeedDistance:50,
           energy:100,
-          ratioSpeedEnergy:3,
 
           turtleDefaultHeight:100,
           turtleAmpHeight:80,
@@ -52,7 +51,7 @@ function resetGame(){
           cameraSensivity:0.002,
 
           rubbishDistanceTolerance:30,
-          rubbishValue:10,
+          rubbishValue:5,
           rubbishSpeed:.2,
           rubbishLastSpawn:0,
           distanceForRubbishSpawn:50,
@@ -118,14 +117,7 @@ function createScene(){
   window.addEventListener('resize', handleWindowResize, false);
 }
 
-function handleWindowResize(){
-  //update height and width of the renderer and the camera
-  HEIGHT= window.innerHeight;
-  WIDTH= window. innerWidth;
-  renderer.setSize(WIDTH,HEIGHT);
-  camera.aspect = WIDTH/HEIGHT;
-  camera.updateProjectionMatrix();
-}
+
 
 var hemisphereLight, shadowLight;
 
@@ -337,6 +329,9 @@ var turtleModel = function (){
       .onUpdate(function(){
          leg2.position.y = this.val;
       })
+      .onComplete(function(){
+        leg2.position.y = -5;
+      })
       .start();
 
   new TWEEN.Tween({val: 30})
@@ -346,6 +341,9 @@ var turtleModel = function (){
       .onUpdate(function(){
          leg2.position.x = this.val;
       })
+      .onComplete(function(){
+        leg2.position.x = 30;
+      })
       .start();
 
   new TWEEN.Tween({val: 0})
@@ -354,6 +352,9 @@ var turtleModel = function (){
       .repeat( Infinity )
       .onUpdate(function(){
          leg2.rotation.z = this.val;
+      })
+      .onComplete(function(){
+        leg2.rotation.z = 0;
       })
       .start();
 
@@ -503,8 +504,8 @@ bottle = function (){
 }
 
 bottle.prototype.update = function(){
-  this.mesh.rotation.z += Math.random()*.1;
-  this.mesh.rotation.y += Math.random()*.1;
+  this.mesh.rotation.z += Math.random()*.02;
+  this.mesh.rotation.y += Math.random()*.02;
 }
 
 
@@ -529,8 +530,8 @@ straw.prototype.update = function(){
   var x= timeElapsed*5 + Math.random();
   //this.mesh.scale.y= (Math.sin(x) + 1) / 2 + 0.8; 
   this.mesh.scale.z= (noise.simplex2(x, x) + 1) / 2 + 0.1;
-  this.mesh.rotation.z += Math.random()*.1;
-  this.mesh.rotation.y += Math.random()*.1;
+  this.mesh.rotation.z += Math.random()*.05;
+  this.mesh.rotation.y += Math.random()*.05;
 }
 
 
@@ -664,7 +665,6 @@ RubbishHolder.prototype.rotateRubbish = function(){
     rubbish.mesh.position.x = Math.cos(rubbish.angle)*rubbish.distance;
     
 
-    //var globalEnnemyPosition =  ennemy.mesh.localToWorld(new THREE.Vector3());
     var diffPos = turtle.mesh.position.clone().sub(rubbish.mesh.position.clone());
     var d = diffPos.length();
     if (d<game.rubbishDistanceTolerance){
@@ -691,7 +691,7 @@ RubbishHolder.prototype.rotateRubbish = function(){
       })
       .start();
 
-      //removeEnergy();
+      removeEnergy();
       i--;
     }else if (rubbish.angle > Math.PI){
       rubbishPool.unshift(this.rubbishInUse.splice(i,1)[0]);
@@ -726,19 +726,7 @@ function createSea(){
 
 var mousePos={x:0, y:0};
 
-//function to handle the mouse move event
-function handleMouseMove(event){
-  //converting the mouse position value received to 
-  //a normalized value between -1 and 1
-  //in the horizontal axis
-  var mousePosX= -1 + (event.clientX / WIDTH)*2;
 
-  //for the vertical axis the formula should be inversed
-  //because the 2D y-axis goes the opposite direction of the 3D y-axis
-
-  var mousePosY= 1 - (event.clientY / HEIGHT)*2;
-  mousePos= {x: mousePosX, y: mousePosY};
-}
 
 function loop(){
 
@@ -764,13 +752,27 @@ function loop(){
       game.rubbishLastSpawn = Math.floor(game.distance);
       rubbishHolder.spawnRubbish();
     }
+
+    updateTurtle();
+    updateDistance();
+    updateEnergy();
+  }else if(game.status=="gameover"){
+    game.speed *= .99;
+    turtle.mesh.rotation.z += (-Math.PI/2 - turtle.mesh.rotation.z)*.0002*deltaTime;
+    turtle.mesh.rotation.x += 0.0003*deltaTime;
+    game.turtleFallSpeed *= 1.05;
+    turtle.mesh.position.y -= game.turtleFallSpeed*deltaTime;
+
+    if (turtle.mesh.position.y <-200){
+      showReplay();
+      game.status = "waitingReplay";
+
+    }
+  }else if (game.status=="waitingReplay"){
+
   }
   
   ambientLight.intensity += (.5 - ambientLight.intensity)*deltaTime*0.005;
-
-  updateTurtle();
-  updateDistance();
-
   rubbishHolder.rotateRubbish();
   renderer.render(scene, camera);
   //controls.update();
@@ -780,9 +782,26 @@ function loop(){
 
 function updateDistance(){
   game.distance += game.speed*deltaTime*game.ratioSpeedDistance;
-  //fieldDistance.innerHTML = Math.floor(game.distance);
-  //var d = 502*(1-(game.distance%game.distanceForLevelUpdate)/game.distanceForLevelUpdate);
-  //levelCircle.setAttribute("stroke-dashoffset", d);
+}
+
+function updateEnergy(){
+  energyBar.style.right = (100-game.energy)+"%";
+  energyBar.style.backgroundColor = (game.energy<50)? "#f25346" : "#0D1B2A";
+
+  if (game.energy<30){
+    energyBar.style.animationName = "blinking";
+  }else{
+    energyBar.style.animationName = "none";
+  }
+
+  if (game.energy <1){
+    game.status = "gameover";
+  }
+}
+
+function removeEnergy(){
+  game.energy -= game.rubbishValue;
+  game.energy = Math.max(0, game.energy);
 }
 function updateTurtle(){
    //the turtle will move between -100 and 100 on the horizontal axis,
@@ -801,6 +820,11 @@ function updateTurtle(){
   game.turtleCollisionDisplacementY += game.turtleCollisionSpeedY;
   targetY += game.turtleCollisionDisplacementY;
 
+  game.turtleCollisionSpeedX += (0-game.turtleCollisionSpeedX)*deltaTime * 0.03;
+  game.turtleCollisionDisplacementX += (0-game.turtleCollisionDisplacementX)*deltaTime *0.01;
+  game.turtleCollisionSpeedY += (0-game.turtleCollisionSpeedY)*deltaTime * 0.03;
+  game.turtleCollisionDisplacementY += (0-game.turtleCollisionDisplacementY)*deltaTime *0.01;
+
    // Move the turtle at each frame by adding a fraction of the remaining distance
   turtle.mesh.position.y += (targetY-turtle.mesh.position.y)*deltaTime*game.turtleMoveSensivity;
   turtle.mesh.position.x += (targetX-turtle.mesh.position.x)*deltaTime*game.turtleMoveSensivity;
@@ -808,17 +832,24 @@ function updateTurtle(){
   // Rotate the turtle proportionally to the remaining distance
   turtle.mesh.rotation.z = (targetY-turtle.mesh.position.y)*deltaTime*game.turtleRotXSensivity;
   turtle.mesh.rotation.x = (turtle.mesh.position.y-targetY)*deltaTime*game.turtleRotZSensivity;
+  
 
+  // update the camera fov and position in relation to the mouse position
   var targetCameraZ = normalize(game.turtleSpeed, game.turtleMinSpeed, game.turtleMaxSpeed, game.cameraNearPos, game.cameraFarPos);
   camera.fov = normalize(mousePos.x,-1,1,40, 80);
   camera.updateProjectionMatrix ()
   camera.position.y += (turtle.mesh.position.y - camera.position.y)*deltaTime*game.cameraSensivity;
 
-  game.turtleCollisionSpeedX += (0-game.turtleCollisionSpeedX)*deltaTime * 0.03;
-  game.turtleCollisionDisplacementX += (0-game.turtleCollisionDisplacementX)*deltaTime *0.01;
-  game.turtleCollisionSpeedY += (0-game.turtleCollisionSpeedY)*deltaTime * 0.03;
-  game.turtleCollisionDisplacementY += (0-game.turtleCollisionDisplacementY)*deltaTime *0.01;
+  
 
+}
+
+function showReplay(){
+  replayMessage.style.display="block";
+}
+
+function hideReplay(){
+  replayMessage.style.display="none";
 }
 
 //function used from Karim Maaloul in codepen
@@ -836,9 +867,9 @@ function normalize(v,vmin,vmax,tmin, tmax){
 
 function init(){
 
+  //UI
+  energyBar = document.getElementById("energyBar");
   resetGame();
-
-
   //set up the scene, camera and the renderer
   createScene();
 
@@ -851,6 +882,9 @@ function init(){
   createRubbish();
   //add the listener for the mouse interaction
   document.addEventListener('mousemove', handleMouseMove, false);
+  document.addEventListener('touchmove', handleTouchMove, false);
+  document.addEventListener('mouseup', handleMouseUp, false);
+  document.addEventListener('touchend', handleTouchEnd, false);
 
   //start a loop that will update object's position
   //and render the scene on each frame
@@ -858,3 +892,49 @@ function init(){
 }
 
 window.addEventListener('load', init, false);
+
+
+function handleWindowResize(){
+  //update height and width of the renderer and the camera
+  HEIGHT= window.innerHeight;
+  WIDTH= window. innerWidth;
+  renderer.setSize(WIDTH,HEIGHT);
+  camera.aspect = WIDTH/HEIGHT;
+  camera.updateProjectionMatrix();
+}
+
+//function to handle the mouse move event
+function handleMouseMove(event){
+  //converting the mouse position value received to 
+  //a normalized value between -1 and 1
+  //in the horizontal axis
+  var mousePosX= -1 + (event.clientX / WIDTH)*2;
+
+  //for the vertical axis the formula should be inversed
+  //because the 2D y-axis goes the opposite direction of the 3D y-axis
+
+  var mousePosY= 1 - (event.clientY / HEIGHT)*2;
+  mousePos= {x: mousePosX, y: mousePosY};
+}
+
+function handleTouchMove(event) {
+    event.preventDefault();
+    var tx = -1 + (event.touches[0].pageX / WIDTH)*2;
+    var ty = 1 - (event.touches[0].pageY / HEIGHT)*2;
+    mousePos = {x:tx, y:ty};
+}
+
+function handleMouseUp(event){
+  if (game.status == "waitingReplay"){
+    resetGame();
+    hideReplay();
+  }
+}
+
+
+function handleTouchEnd(event){
+  if (game.status == "waitingReplay"){
+    resetGame();
+    hideReplay();
+  }
+}

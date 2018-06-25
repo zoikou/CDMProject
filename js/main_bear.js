@@ -388,7 +388,8 @@ Bear = function(){
     this.headGroup.add(this.leftBigEye);
     this.headGroup.add(this.rightSmallEye);
     this.headGroup.add(this.leftSmallEye);
-    this.headGroup.position.y +=25;
+    this.headGroup.position.y +=30;
+    this.headGroup.position.z +=10;
 
 
     this.bearModel.add(this.body);

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="css/styles_bear.css" />
+	<script type="text/javascript" src="js/three.min.js"></script>
+	<script type="text/javascript" src="js/main_bear.js"/></script>
+	<script type="text/javascript" src="js/OrbitControls.js"/></script>
+	<script type="text/javascript" src="js/OBJLoader.js"/></script>
+	<script type="text/javascript" src="js/perlin.js"/></script>
+	<script type="text/javascript" src="js/Tween.min.js"/></script>
+	<script type="text/javascript" src="js/Cloth.js"/></script>
+	<title></title>
+</head>
+<body>
+	
+<div class="bear-game-holder" id="bearGameHolder">
+	<div class="header">
+		<h1>Climate Change</h1>
+		<h2>save the bear from the melting ocean</h2>
+		<div class="score" id="score">
+			<div class="score__content" id="energy">
+				<div class="score__label">energy</div>
+				<div class="score__value score__value--energy" id="energyValue">
+					<div class="energy-bar" id="energyBar"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="world" id="world"></div>
+	<div class="message message--replay" id="replayMessage">Click to Replay</div>
+</div>
+
+</body>
+</html>

@@ -518,6 +518,8 @@ straw = function(){
   geomStraw.vertices[0].x+=3;
   geomStraw.vertices[1].x+=3;
   geomStraw.vertices[2].x+=3;
+  geomStraw.vertices[12].x+=3;
+
   
   this.mesh = new THREE.Mesh(geomStraw, matStraw);
   this.mesh.castShadow = true;

@@ -13,8 +13,18 @@ var deltaTime = 0;
 var newTime = new Date().getTime();
 var oldTime = new Date().getTime();
 
+//SCENE VARIABLES
+var sea, snowFlake, bear, snow, iceberg 
+    isDrowning = false;
+    isSnowing = false;
+    isFreezing = false;
+
 //THREE RELATED VARIABLES
-var scene, camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH, renderer, container, clock, controls;
+var scene, camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH, renderer, container, clock, controls,
+    windowHalfX,
+  	windowHalfY,
+    mousePos = {x:0,y:0};
+    dist = 0;
 
 function createScene(){
   HEIGHT= window.innerHeight;
@@ -110,6 +120,56 @@ function createLights(){
   scene.add(shadowLight);
   scene.add(ambientLight);
   scene.add(backLight);
+}
+
+SnowFlake = function(){
+	this.isFreezing = false;
+	this.speed = 0;
+	this.acceleration=0;
+
+	this.blueMat = new THREE.MeshPhongMaterial({
+		color: Colors.blue,
+		shading:THREE.FlatShading
+	});
+
+    var mainGeom = new THREE.BoxGeometry(4,60,2)
+    var smallGeom = new THREE.BoxGeometry(2,15,2)
+    smallGeom.applyMatrix( new THREE.Matrix4().makeTranslation( 0,8,0) );
+
+    //geometry
+    var iceFlake1 = new THREE.Mesh(mainGeom, this.blueMat);
+    var smallIce1 = new THREE.Mesh(smallGeom, this.blueMat);
+    smallIce1.rotation.z= Math.PI/4;
+    smallIce1.position.y= 20;
+    var smallIce2 = new THREE.Mesh(smallGeom, this.blueMat);
+    smallIce2.rotation.z= -Math.PI/4;
+    smallIce2.position.y= 20;
+    var smallIce3 = new THREE.Mesh(smallGeom, this.blueMat);
+    smallIce3.rotation.z= Math.PI/4 * 3;
+    smallIce3.position.y= -20;
+    var smallIce4 = new THREE.Mesh(smallGeom, this.blueMat);
+    smallIce4.rotation.z= -Math.PI/4 * 3;
+    smallIce4.position.y= -20;
+
+
+    this.iceFlakeGroup1 = new THREE.Group();
+    this.iceFlakeGroup1.add(iceFlake1);
+    this.iceFlakeGroup1.add(smallIce1);
+    this.iceFlakeGroup1.add(smallIce2);
+    this.iceFlakeGroup1.add(smallIce3);
+    this.iceFlakeGroup1.add(smallIce4);
+
+    this.iceFlakeGroup2 = this.iceFlakeGroup1.clone();
+    this.iceFlakeGroup2.rotation.z = Math.PI/4 + Math.PI/10;
+
+    this.iceFlakeGroup3 = this.iceFlakeGroup1.clone();
+    this.iceFlakeGroup3.rotation.z = - (Math.PI/4 + Math.PI/10);
+    
+    this.mesh = new THREE.Group();
+    this.mesh.add(this.iceFlakeGroup1);
+    this.mesh.add(this.iceFlakeGroup2);
+    this.mesh.add(this.iceFlakeGroup3);
+
 }
 
 Bear = function(){
@@ -399,11 +459,166 @@ Bear = function(){
     this.bearModel.add(this.backRightLegGroup);
     this.bearModel.add(this.headGroup);
 
+    this.bearModel.traverse( function ( object ) {
+		if ( object instanceof THREE.Mesh ) {
+			object.castShadow = true;
+			object.receiveShadow = true;
+		}
+	} );
+
+}
+
+Sea = function(){
+  var geomSea = new THREE.CylinderGeometry(2000,2000,3000,40,10);
+  geomSea.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI/2));
+  geomSea.mergeVertices();
+  var length = geomSea.vertices.length;
+
+  this.waves = [];
+
+  for (var i=0;i<length;i++){
+    var v = geomSea.vertices[i];
+    //v.y = Math.random()*30;
+    this.waves.push({y:v.y,
+                     x:v.x,
+                     z:v.z,
+                     ang:Math.random()*Math.PI*2,
+                     amp:5 + Math.random()*(20-5),
+                     speed:0.001 + Math.random()*(0.003 - 0.001)
+                    });
+  };
+  var matSea = new THREE.MeshPhongMaterial({
+    color:Colors.blue,
+    transparent:true,
+    opacity:.8,
+    shading:THREE.FlatShading,
+
+  });
+
+  this.mesh = new THREE.Mesh(geomSea, matSea);
+  this.mesh.name = "waves";
+  this.mesh.receiveShadow = true;
+
+}
+
+Sea.prototype.moveWaves = function (){
+  var verts = this.mesh.geometry.vertices;
+  var l = verts.length;
+  for (var i=0; i<l; i++){
+    var v = verts[i];
+    var vprops = this.waves[i];
+    v.x =  vprops.x + Math.cos(vprops.ang)*vprops.amp;
+    v.y = vprops.y + Math.sin(vprops.ang)*vprops.amp;
+    vprops.ang += vprops.speed*deltaTime;
+    this.mesh.geometry.verticesNeedUpdate=true;
+  }
+}
+
+Snow = function(){
+	var snowGeo = new THREE.Geometry();
+	var snowMat = new THREE.PointsMaterial({
+		color: Colors.white,
+		size: 10,
+		map: new THREE.TextureLoader().load('assets/textures/particle.png'),
+		transparent: true,
+		opacity: .8,
+		blending: THREE.AdditiveBlending,
+		depthWrite: false
+	});
+
+	var snowCount = 20000;
+	var snowDistance = 100;
+
+	for (var i=0; i<snowCount; i++) {
+		var posX = (Math.random() - 0.5) * snowDistance;
+		var posY = (Math.random() - 0.5) * snowDistance;
+		var posZ = (Math.random() - 0.5) * snowDistance;
+		var particle = new THREE.Vector3(posX, posY, posZ);
+
+		snowGeo.vertices.push(particle);
+	}
+
+	this.mesh = new THREE.Points(
+		snowGeo,
+		snowMat
+	);
+}
+
+Snow.prototype.animate = function(){
+	this.mesh.geometry.vertices.forEach(function(particle) {
+		particle.x += (Math.random() - 1) * 0.1;
+		particle.y += (Math.random() - 0.75) * 0.1;
+		particle.z += (Math.random()) * 0.1;
+
+			if (particle.x < -50) {
+			particle.x = 50;
+		}
+
+		if (particle.y < -50) {
+			particle.y = 50;
+		}
+
+		if (particle.z < -50) {
+			particle.z = 50;
+		}
+
+		if (particle.z > 50) {
+			particle.z = -50;
+		}
+	});
+	this.mesh.geometry.verticesNeedUpdate = true;
+}
+
+Iceberg = function(){
+  var geomIceberg = new THREE.TetrahedronGeometry(8,2);
+  var matIceberg = new THREE.MeshPhongMaterial({
+    color:Colors.white,
+    shading:THREE.FlatShading,
+  });
+
+  this.mesh = new THREE.Mesh(geomIceberg, matIceberg);
+  this.mesh.receiveShadow = true;
+  this.mesh.castShadow = true;
+}
+
+function createSnowFlake(){
+	snowFlake = new SnowFlake();
+	snowFlake.mesh.position.z = 150;
+    snowFlake.mesh.position.y = 30;
+    snowFlake.mesh.position.x = 150;
+ 
+	scene.add(snowFlake.mesh);
 }
 
 function createBear(){
   bear = new Bear();
+  bear.bearModel.position.z = 150;
+  bear.bearModel.position.y = 30;
+  bear.bearModel.rotation.y = -Math.PI/8;
+  bear.bearModel.scale.set(.6, .6, .6);
   scene.add(bear.bearModel);
+}
+
+function createSnow(){
+  snow = new Snow();
+  snow.mesh.position.z = -1500;
+  snow.mesh.scale.set(40, 40, 40);
+  scene.add(snow.mesh);
+}
+
+function createSea(){
+  sea = new Sea();
+  sea.mesh.position.y = -2150;
+  sea.mesh.position.z = -600;
+  scene.add(sea.mesh);
+}
+
+function createIceberg(){
+  iceberg = new Iceberg();
+  iceberg.mesh.scale.set(40, 10, 40);
+  iceberg.mesh.position.y = -155;
+  iceberg.mesh.position.z = 100;
+  scene.add(iceberg.mesh);
 }
 
 function loop(){
@@ -414,9 +629,10 @@ function loop(){
 
   //TWEEN.update();
   var timeElapsed = clock.getElapsedTime();
- 
   
-  ambientLight.intensity += (.5 - ambientLight.intensity)*deltaTime*0.005;
+  sea.moveWaves();
+  snow.animate();
+  //ambientLight.intensity += (.5 - ambientLight.intensity)*deltaTime*0.005;
   
   renderer.render(scene, camera);
   controls.update();
@@ -437,15 +653,19 @@ function init(){
   createLights();
 
   //add the objects
+  createSnowFlake();
   createBear();
-  //createSea();
-  //createIce();
+  createSea();
+  createIceberg();
+  createSnow();
 
   //add the listener for the mouse interaction
-  //document.addEventListener('mousemove', handleMouseMove, false);
-  //document.addEventListener('touchmove', handleTouchMove, false);
-  //document.addEventListener('mouseup', handleMouseUp, false);
-  //document.addEventListener('touchend', handleTouchEnd, false);
+  document.addEventListener('mousemove', handleMouseMove, false);
+  document.addEventListener('mousedown', handleMouseDown, false);
+  document.addEventListener('mouseup', handleMouseUp, false);
+  document.addEventListener('touchstart', handleTouchStart, false);
+  document.addEventListener('touchend', handleTouchEnd, false);
+  document.addEventListener('touchmove',handleTouchMove, false);
 
   //start a loop that will update object's position
   //and render the scene on each frame
@@ -459,7 +679,40 @@ function handleWindowResize(){
   //update height and width of the renderer and the camera
   HEIGHT= window.innerHeight;
   WIDTH= window. innerWidth;
+  windowHalfX = WIDTH / 2;
+  windowHalfY = HEIGHT / 2;
   renderer.setSize(WIDTH,HEIGHT);
   camera.aspect = WIDTH/HEIGHT;
   camera.updateProjectionMatrix();
+}
+
+function handleMouseMove(event) {
+  mousePos = {x:event.clientX, y:event.clientY};
+}
+
+function handleMouseDown(event) {
+  isFreezing = true;
+}
+function handleMouseUp(event) {
+  isFreezing = false;
+}
+
+function handleTouchStart(event) {
+  if (event.touches.length > 1) {
+    event.preventDefault();
+	mousePos = {x:event.touches[0].pageX, y:event.touches[0].pageY};
+    isFreezing = true;
+  }
+}
+
+function handleTouchEnd(event) {
+    mousePos = {x:windowHalfX, y:windowHalfY};
+    isFreezing = false;
+}
+
+function handleTouchMove(event) {
+  if (event.touches.length == 1) {
+    event.preventDefault();
+		mousePos = {x:event.touches[0].pageX, y:event.touches[0].pageY};
+  }
 }

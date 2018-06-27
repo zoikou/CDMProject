@@ -16,6 +16,7 @@ var oldTime = new Date().getTime();
 //SCENE VARIABLES
 var sea, snowFlake, bear, snow, iceberg 
     isDrowning = false;
+    isMelted = false;
     isSnowing = false;
     isFreezing = false;
 
@@ -29,7 +30,8 @@ var scene, camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
 function createScene(){
   HEIGHT= window.innerHeight;
   WIDTH= window.innerWidth;
-
+  windowHalfX = WIDTH / 2;
+  windowHalfY = HEIGHT / 2;
   //create the scene
   scene= new THREE.Scene();
   //create a fog effect
@@ -71,7 +73,7 @@ function createScene(){
   container = document.getElementById('world');
   container.appendChild(renderer.domElement);
 
-  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  //controls = new THREE.OrbitControls(camera, renderer.domElement);
 
   // listen to the screen: if the user resizes it, the camera and the renderer size should be updated
   window.addEventListener('resize', handleWindowResize, false);
@@ -172,7 +174,30 @@ SnowFlake = function(){
 
 }
 
+SnowFlake.prototype.update = function(xTarget, yTarget){
+  this.mesh.lookAt(new THREE.Vector3(0,80,60));
+  this.targetPosX = normalize(xTarget, -100, 100, -250, 150);
+  this.targetPosY = normalize(yTarget, -100, 100, 150, -150);
+
+  this.mesh.position.x += (this.targetPosX - this.mesh.position.x) /10;
+  this.mesh.position.y += (this.targetPosY - this.mesh.position.y) /10;
+  
+  //this.targetSpeed = (this.isFreezing) ? .3 : .01;
+  if (this.isFreezing && this.speed < .5){
+    this.acceleration +=.001;
+    this.speed += this.acceleration;
+  }else if (!this.isFreezing){
+    this.acceleration = 0;
+    this.speed *= .98;
+  }
+ 
+  this.iceFlakeGroup1.rotation.z += this.speed; 
+  this.iceFlakeGroup2.rotation.z += this.speed;
+  this.iceFlakeGroup3.rotation.z += this.speed;
+}
+
 Bear = function(){
+	this.fallSpeed = .001;
 	this.bodyInitPositions = [];
 	this.bearModel = new THREE.Group();
 
@@ -468,6 +493,69 @@ Bear = function(){
 
 }
 
+Bear.prototype.drowning = function(){
+	this.bearModel.rotation.z += (-Math.PI/2 - this.bearModel.rotation.z)*.0002*deltaTime;
+    this.bearModel.rotation.x += 0.0003*deltaTime;
+    this.bearModel.position.z += 0.1*deltaTime;
+    this.fallSpeed *= 1.1;
+    this.bearModel.position.y -= this.fallSpeed*deltaTime;
+}
+
+Bear.prototype.look = function(xTarget, yTarget){
+  this.targetHeadRotY = normalize(xTarget, -100, 100, -Math.PI/4, Math.PI/4);
+  this.targetHeadRotX = normalize(yTarget, -100,100, -Math.PI/4, Math.PI/4);
+  this.targetHeadPosX = normalize(xTarget, -100, 100, 70,-70);
+  this.targetHeadPosY = normalize(yTarget, -140, 260, 20, 100);
+  this.targetHeadPosZ = 60;
+  
+    
+  this.targetBigEyeScale = 1;
+  this.targetSmallEyeYScale = 1;
+  this.targetSmallEyeZScale = 1;
+  this.targetSmallEyePosY = normalize(yTarget, -100,100, 80,60);
+  //this.targetLeftSmallEyePosZ = normalize(xTarget, -100, 100, 162, 142);
+  //this.targetRightSmallEyePosZ = normalize(xTarget, -100, 100, 142, 162);
+  
+  //this.tSmilePosX = 0;
+  //this.targetMouthPosZ = 174;
+  //this.tSmilePosZ = 173;
+  //this.tSmilePosY = -15;
+  //this.tSmileRotZ = -Math.PI;
+    
+  this.updateBody(10);
+ 
+}
+
+Bear.prototype.updateBody = function(speed){
+  
+  this.headGroup.rotation.y += (this.targetHeadRotY - this.headGroup.rotation.y) / speed;
+  this.headGroup.rotation.x += (this.targetHeadRotX - this.headGroup.rotation.x) / speed;
+  this.headGroup.position.x += (this.targetHeadPosX-this.headGroup.position.x) / speed; 
+  this.headGroup.position.y += (this.targetHeadPosY-this.headGroup.position.y) / speed; 
+  this.headGroup.position.z += (this.targetHeadPosZ-this.headGroup.position.z) / speed; 
+  
+  this.leftBigEye.scale.y += (this.targetBigEyeScale - this.leftBigEye.scale.y) / (speed*2);
+  this.rightBigEye.scale.y = this.leftBigEye.scale.y;
+  
+  this.leftSmallEye.scale.y += (this.targetSmallEyeYScale - this.leftSmallEye.scale.y) / (speed*2);
+  this.rightSmallEye.scale.y = this.leftSmallEye.scale.y;
+  
+  this.leftSmallEye.scale.z += (this.targetSmallEyeZScale - this.leftSmallEye.scale.z) / (speed*2);
+  this.rightSmallEye.scale.z = this.leftSmallEye.scale.z;
+  
+  this.leftSmallEye.position.y += (this.targetSmallEyePosY - this.leftSmallEye.position.y) / speed;
+  this.rightSmallEye.position.y = this.leftSmallEye.position.y;
+  //this.leftSmallEye.position.z += (this.targetLeftSmallEyePosZ - this.leftSmallEye.position.z) / speed;
+  //this.rightSmallEye.position.z += (this.targetRightSmallEyePosZ - this.rightSmallEye.position.z) / speed;
+  
+  
+  /*this.smile.position.x += (this.tSmilePosX - this.smile.position.x) / speed;
+  this.mouth.position.z += (this.tMouthPosZ - this.mouth.position.z) / speed;
+  this.smile.position.z += (this.tSmilePosZ - this.smile.position.z) / speed;
+  this.smile.position.y += (this.tSmilePosY - this.smile.position.y) / speed;
+  this.smile.rotation.z += (this.tSmileRotZ - this.smile.rotation.z) / speed;*/
+}
+
 Sea = function(){
   var geomSea = new THREE.CylinderGeometry(2000,2000,3000,40,10);
   geomSea.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI/2));
@@ -581,11 +669,24 @@ Iceberg = function(){
   this.mesh.castShadow = true;
 }
 
+Iceberg.prototype.melting = function(){
+	this.mesh.scale.x -= 0.01
+	this.mesh.scale.z -= 0.01
+
+	if(this.mesh.scale.x < 5 && this.mesh.scale.z < 5){
+		isMelted = true;
+	}
+	if(this.mesh.scale.x < 22 && this.mesh.scale.z < 22){
+		isDrowning = true;
+	}
+
+}
+
 function createSnowFlake(){
 	snowFlake = new SnowFlake();
-	snowFlake.mesh.position.z = 150;
-    snowFlake.mesh.position.y = 30;
-    snowFlake.mesh.position.x = 150;
+    snowFlake.mesh.position.z = 400;
+ //    snowFlake.mesh.position.y = 30;
+ //    snowFlake.mesh.position.x = 150;
  
 	scene.add(snowFlake.mesh);
 }
@@ -630,12 +731,32 @@ function loop(){
   //TWEEN.update();
   var timeElapsed = clock.getElapsedTime();
   
+  var xTarget = (mousePos.x-windowHalfX);
+  var yTarget= (mousePos.y-windowHalfY);
+  
+  snowFlake.isFreezing = isFreezing;
+  snowFlake.update(xTarget, yTarget);
+  /*if(isFreezing) {
+    lion.cool(xTarget, yTarget);
+  }else{
+    lion.look(xTarget, yTarget);
+  }*/
+
+  bear.look(xTarget, yTarget);
   sea.moveWaves();
   snow.animate();
+
+  if(!isMelted){
+  	iceberg.melting();
+  }
+  if(isDrowning){
+  	bear.drowning();
+  }
+  
   //ambientLight.intensity += (.5 - ambientLight.intensity)*deltaTime*0.005;
   
   renderer.render(scene, camera);
-  controls.update();
+  //controls.update();
   requestAnimationFrame(loop);
 
 }
@@ -715,4 +836,16 @@ function handleTouchMove(event) {
     event.preventDefault();
 		mousePos = {x:event.touches[0].pageX, y:event.touches[0].pageY};
   }
+}
+
+//function used from Karim Maaloul in codepen
+function normalize(v,vmin,vmax,tmin, tmax){
+
+  var nv = Math.max(Math.min(v,vmax), vmin);
+  var dv = vmax-vmin;
+  var pc = (nv-vmin)/dv;
+  var dt = tmax-tmin;
+  var tv = tmin + (pc*dt);
+  return tv;
+
 }

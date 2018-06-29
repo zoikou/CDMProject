@@ -58,7 +58,6 @@ function resetGame(){
 
           status : "playing",
          };
-  //fieldLevel.innerHTML = Math.floor(game.level);
 }
 
 
@@ -871,6 +870,7 @@ function init(){
 
   //UI
   energyBar = document.getElementById("energyBar");
+  replayMessage = document.getElementById("replayMessage");
   resetGame();
   //set up the scene, camera and the renderer
   createScene();

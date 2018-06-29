@@ -14,18 +14,25 @@ var newTime = new Date().getTime();
 var oldTime = new Date().getTime();
 
 //SCENE VARIABLES
-var sea, snowFlake, bear, snow, iceberg 
-    isDrowning = false;
-    isMelted = false;
-    isSnowing = false;
-    isFreezing = false;
+var sea, snowFlake, bear, snow, iceberg, game;
 
 //THREE RELATED VARIABLES
 var scene, camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH, renderer, container, clock, controls,
     windowHalfX,
   	windowHalfY,
     mousePos = {x:0,y:0};
-    dist = 0;
+
+function resetGame(){
+  game = {
+          temperature:100,
+          freezingValue:1,
+          status : "playing",
+          isDrowning : false,
+          isMelting : true,
+          isSnowing : false,
+          isFreezing : false,
+         };
+}
 
 function createScene(){
   HEIGHT= window.innerHeight;
@@ -186,6 +193,7 @@ SnowFlake.prototype.update = function(xTarget, yTarget){
   if (this.isFreezing && this.speed < .5){
     this.acceleration +=.001;
     this.speed += this.acceleration;
+    decreaseTemperature();
   }else if (!this.isFreezing){
     this.acceleration = 0;
     this.speed *= .98;
@@ -674,10 +682,10 @@ Iceberg.prototype.melting = function(){
 	this.mesh.scale.z -= 0.01
 
 	if(this.mesh.scale.x < 5 && this.mesh.scale.z < 5){
-		isMelted = true;
+		game.isMelting = false;
 	}
 	if(this.mesh.scale.x < 22 && this.mesh.scale.z < 22){
-		isDrowning = true;
+		game.isDrowning = true;
 	}
 
 }
@@ -685,10 +693,7 @@ Iceberg.prototype.melting = function(){
 function createSnowFlake(){
 	snowFlake = new SnowFlake();
     snowFlake.mesh.position.z = 400;
- //    snowFlake.mesh.position.y = 30;
- //    snowFlake.mesh.position.x = 150;
- 
-	scene.add(snowFlake.mesh);
+ 	scene.add(snowFlake.mesh);
 }
 
 function createBear(){
@@ -705,6 +710,7 @@ function createSnow(){
   snow.mesh.position.z = -1500;
   snow.mesh.scale.set(40, 40, 40);
   scene.add(snow.mesh);
+  snow.mesh.visible = false;
 }
 
 function createSea(){
@@ -734,38 +740,84 @@ function loop(){
   var xTarget = (mousePos.x-windowHalfX);
   var yTarget= (mousePos.y-windowHalfY);
   
-  snowFlake.isFreezing = isFreezing;
+  snowFlake.isFreezing = game.isFreezing;
   snowFlake.update(xTarget, yTarget);
-  /*if(isFreezing) {
-    lion.cool(xTarget, yTarget);
-  }else{
-    lion.look(xTarget, yTarget);
-  }*/
-
-  bear.look(xTarget, yTarget);
+  updateTemperature();  
   sea.moveWaves();
-  snow.animate();
-
-  if(!isMelted){
+  if(game.isSnowing){
+  	snow.animate();
+  	game.isMelting = false;
+  }
+  if(game.isMelting){
   	iceberg.melting();
   }
-  if(isDrowning){
-  	bear.drowning();
-  }
   
-  //ambientLight.intensity += (.5 - ambientLight.intensity)*deltaTime*0.005;
+  if (game.status=="playing"){
+
+  	bear.look(xTarget, yTarget);
+  
+    if(game.isDrowning){
+  	  game.status = "gameover";
+    }
+
+  }else if(game.status=="gameover"){
+    
+    bear.drowning();
+    if (bear.bearModel.position.y <-600){
+      showReplay();
+      game.status = "waitingReplay";
+
+    }
+  }else if (game.status=="waitingReplay"){
+
+  }
+
   
   renderer.render(scene, camera);
   //controls.update();
   requestAnimationFrame(loop);
 
 }
+function respawnBear(){
+  bear.bearModel.position.z = 150;
+  bear.bearModel.position.y = 30;
+  bear.bearModel.rotation.y = -Math.PI/8;
+}
+
+function showReplay(){
+  nowOrNeverMessage.style.display="block";
+}
+
+function hideReplay(){
+  nowOrNeverMessage.style.display="none";
+}
+
+function updateTemperature(){
+  temperatureBar.style.right = (100-game.temperature)+"%";
+  temperatureBar.style.backgroundColor = (game.temperature<50)? "#0D1B2A" : "#f25346";
+
+  if (game.temperature>50){
+    temperatureBar.style.animationName = "none";
+  }else{
+    temperatureBar.style.animationName = "blinking";
+  }
+  if(game.temperature < 10){
+  	game.isSnowing = true;
+  	snow.mesh.visible = true;
+  }
+}
+
+function decreaseTemperature(){
+  game.temperature -= game.freezingValue;
+  game.temperature = Math.max(0, game.temperature);
+}
 
 function init(){
 
   //UI
-  //energyBar = document.getElementById("energyBar");
-  //resetGame();
+  temperatureBar = document.getElementById("temperatureBar");
+  nowOrNeverMessage = document.getElementById("nowOrNeverMessage");
+  resetGame();
 
   //set up the scene, camera and the renderer
   createScene();
@@ -812,29 +864,30 @@ function handleMouseMove(event) {
 }
 
 function handleMouseDown(event) {
-  isFreezing = true;
+     game.isFreezing = true;
+ 
 }
 function handleMouseUp(event) {
-  isFreezing = false;
+     game.isFreezing = false;
 }
 
 function handleTouchStart(event) {
   if (event.touches.length > 1) {
     event.preventDefault();
 	mousePos = {x:event.touches[0].pageX, y:event.touches[0].pageY};
-    isFreezing = true;
+    game.isFreezing = true;
   }
 }
 
 function handleTouchEnd(event) {
-    mousePos = {x:windowHalfX, y:windowHalfY};
-    isFreezing = false;
+   mousePos = {x:windowHalfX, y:windowHalfY};
+   game.isFreezing = false;
 }
 
 function handleTouchMove(event) {
   if (event.touches.length == 1) {
     event.preventDefault();
-		mousePos = {x:event.touches[0].pageX, y:event.touches[0].pageY};
+	mousePos = {x:event.touches[0].pageX, y:event.touches[0].pageY};
   }
 }
 

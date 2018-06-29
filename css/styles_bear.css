@@ -81,7 +81,7 @@
 	background-color: #FDC5F5;
 }
 
-.energy-bar {
+.temperature-bar {
 	position: absolute;
 	top: 0;
 	right: 0;
@@ -107,12 +107,12 @@
 	pointer-events: none;
 }
 
-.message--replay {
+.message--nowOrNever {
 	font-size: 1.25vw;
 	font-family: 'Federo', sans-serif;
-	bottom: 40vh;
+	bottom: 60vh;
 	display: none;
 	text-indent: 0.5em;
 	letter-spacing: 0.5em;
-	color: #BBB6DF;
+	color: #DDFFF7;
 }

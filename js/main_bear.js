@@ -534,6 +534,23 @@ Bear.prototype.look = function(xTarget, yTarget){
  
 }
 
+Bear.prototype.cool = function(xTarget, yTarget){
+  this.targetHeadRotY = normalize(xTarget, -100, 100, Math.PI/4, -Math.PI/4);
+  this.targetHeadRotX = normalize(yTarget, -100,100, Math.PI/4, -Math.PI/4);
+  this.targetHeadPosX = normalize(xTarget, -100, 100, -70, 70);
+  this.targetHeadPosY = normalize(yTarget, -140, 260, 100, 20);
+  this.targetHeadPosZ = 60;
+  
+    
+  this.targetBigEyeScale = 0.1;
+  this.targetSmallEyeYScale = 0.1;
+  this.targetSmallEyeZScale = 0.2;
+  this.targetSmallEyePosY = 65;
+
+  this.updateBody(10);
+
+}
+
 Bear.prototype.updateBody = function(speed){
   
   this.headGroup.rotation.y += (this.targetHeadRotY - this.headGroup.rotation.y) / speed;
@@ -753,9 +770,12 @@ function loop(){
   }
   
   if (game.status=="playing"){
+  	if(!game.isFreezing){
+  		bear.look(xTarget, yTarget);
+  	}else{
+        bear.cool(xTarget, yTarget);
+  	}
 
-  	bear.look(xTarget, yTarget);
-  
     if(game.isDrowning){
   	  game.status = "gameover";
     }

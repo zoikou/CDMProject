@@ -32,20 +32,15 @@ function gameStart(){
 			speed : 6,
 			distance : 0,
 			level : 1,
-			levelUpdateFreq : 3000,
 			initSpeed : 5,
 			maxSpeed : 48,
 			machinePos : .65,
 			machinePosTarget : .65,
 			floorRotation : 0,
 			collisionObstacle : 15,
-			collisionBonus : 20,
+			collisionBonus : 15,
 			status : "play",
-			cameraPosGame : 160,
-			cameraPosGameOver : 260,
 			machineAcceleration : 0.004,
-			malusClearColor : 0xb44b39,
-			malusClearAlpha : 0,
          };
 }
 
@@ -97,7 +92,7 @@ function createScene(){
   container = document.getElementById('world');
   container.appendChild(renderer.domElement);
 
-  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  //controls = new THREE.OrbitControls(camera, renderer.domElement);
 
   // listen to the screen: if the user resizes it, the camera and the renderer size should be updated
   window.addEventListener('resize', handleWindowResize, false);
@@ -665,7 +660,7 @@ Machine = function(){
 
   this.wheel = new THREE.Mesh(wheelGeom, this.blackMat);
   this.wheel.rotation.x = Math.PI/2;
-  this.wheel.position.x = 50;
+  this.wheel.position.x = 60;
   this.wheel.position.y= -20;
 
 	this.handPart1 = new THREE.Mesh(handPart1Geom, this.yellowMat);
@@ -738,9 +733,7 @@ Machine.prototype.catch = function(){
   var _this = this;
 
   TweenMax.to(this.dung1.position, sp, {x:-9, ease:ease});
-  TweenMax.to(this.body.position, sp, {y:3, ease:ease, onComplete:function(){
-    game.status = "readyToReplay";
-  }});
+  TweenMax.to(this.body.position, sp, {y:3, ease:ease});
 
   
   TweenMax.to(this.handPart1.rotation, 2, {z:-Math.PI/2 - Math.PI/10, ease:ease});
@@ -808,7 +801,7 @@ function createRhino() {
 
 function createMachine(){
 	machine = new Machine();
-	machine.mesh.position.x = -220;
+	machine.mesh.position.x = -230;
 	machine.mesh.position.y = -50;
 	scene.add(machine.mesh);
 }
@@ -846,16 +839,15 @@ function createLeaf(){
 }
 
 function updateLeafPosition(){
-  leaf.mesh.rotation.x += game.delta * 6;
-  leaf.mesh.rotation.z = Math.PI/4 - (game.floorRotation+leaf.angle);
-  leaf.mesh.position.y = -game.floorRadius + Math.sin(game.floorRotation+leaf.angle) * (game.floorRadius+20);
+  leaf.mesh.rotation.y += game.delta * 6;
+  leaf.mesh.rotation.x = Math.PI/4 - (game.floorRotation+leaf.angle);
+  leaf.mesh.position.y = -game.floorRadius + Math.sin(game.floorRotation+leaf.angle) * (game.floorRadius+20) - game.delta;
   leaf.mesh.position.x = Math.cos(game.floorRotation+leaf.angle) * (game.floorRadius+50);
   
 }
 
 function createObstacle(){
   obstacle = new obstacle();
-  //obstacle.body.rotation.y = -Math.PI/4;
   obstacle.mesh.scale.set(1.5,1.5,1.5);
   obstacle.mesh.position.y = game.floorRadius;
   scene.add(obstacle.mesh);
@@ -864,13 +856,10 @@ function createObstacle(){
 function updateObstaclePosition(){
   if (obstacle.status=="flying")return;
   
-  // TODO fix this,
   if (game.floorRotation+obstacle.angle > 2.5 ){
     obstacle.angle = -game.floorRotation + Math.random()*.3;
-    //obstacle.body.rotation.y = Math.random() * Math.PI*2;
   }
   
-  //obstacle.mesh.rotation.z = game.floorRotation + obstacle.angle - Math.PI/2;
   obstacle.mesh.position.y = -game.floorRadius + Math.sin(game.floorRotation+obstacle.angle) * (game.floorRadius-13);
   obstacle.mesh.position.x = Math.cos(game.floorRotation+obstacle.angle) * (game.floorRadius);
   
@@ -889,22 +878,20 @@ function updateMachinePosition(){
   machine.follow();
   game.machinePosTarget -= game.delta*game.machineAcceleration;
   game.machinePos += ( game.machinePosTarget-game.machinePos) *game.delta;
-  if (game.machinePos < .58){
+  if (game.machinePos < .57){
    gameOver();
   }
-  console.log(game.machinePos);
+  
   var angle = Math.PI* game.machinePos;
   machine.body.position.x = 100 + Math.cos(angle)*(game.floorRadius+15);
 }
 
 function gameOver(){
-  //fieldGameOver.className = "show";
+  startToCareMessage.style.display="block";
   game.status = "gameOver";
   machine.catch();
   rhino.catch();
   machine.rhinoHolder.add(rhino.mesh);
-  //TweenMax.to(this, 1, {speed:0});
-  //TweenMax.to(camera.position, 3, {z:cameraPosGameOver, y: 60, x:-30});
   leaf.mesh.visible = false;
   obstacle.mesh.visible = false;
   clearInterval(game.levelInterval);
@@ -938,7 +925,7 @@ function getBonus(){
   bonusParticles.explose();
   leaf.angle += Math.PI + Math.PI/8;
   //speed*=.95;
-  game.machinePosTarget += .025;
+  game.machinePosTarget += .06;
   
 }
 
@@ -948,7 +935,7 @@ function getMalus(){
   TweenMax.to(obstacle.mesh.position, 4, {x:tx, y:Math.random()*50, z:350, ease:Power4.easeOut});
   TweenMax.to(obstacle.mesh.rotation, 4, {x:Math.PI*3, z:Math.PI*3, y:Math.PI*6, ease:Power4.easeOut, onComplete:function(){
     obstacle.status = "ready";
-    //obstacle.body.rotation.y = Math.random() * Math.PI*2;
+    
     obstacle.angle = -game.floorRotation - Math.random()*.4;
     
     obstacle.angle = obstacle.angle%(Math.PI*2);
@@ -959,19 +946,49 @@ function getMalus(){
     
   }});
   //
-  game.monsterPosTarget -= .04;
+  game.machinePosTarget -= .01;
 }
 
 function updateDistance(){
   game.distance += game.delta*game.speed;
-  var d =  game.distance/2;
-  //fieldDistance.innerHTML = Math.floor(d);
+  var t =  game.distance/2;
+  time.innerHTML = Math.floor(t);
 }
 
-function updateLevel(){
-  if (game.speed >= game.maxSpeed) return;
-  game.level++;
-  game.speed += 2; 
+
+function resetGame(){
+  scene.add(rhino.mesh);
+  rhino.mesh.position.y = 0;
+  rhino.mesh.position.z = 0;
+  rhino.mesh.position.x = 0;
+  rhino.head.rotation.y = 0;
+  rhino.head.rotation.x = 0;
+
+  gameStart();
+  leaf.mesh.visible = true;
+  obstacle.mesh.visible = true;
+
+  rhino.status = "running";
+
+  //audio.play();
+}
+function replay(){
+  
+  game.status = "preparingToReplay"
+  
+  startToCareMessage.style.display="none";
+  
+  TweenMax.killTweensOf(machine.dung1.position);
+  TweenMax.killTweensOf(machine.body.position); 
+  TweenMax.killTweensOf(machine.handPart1.rotation);
+
+  TweenMax.killTweensOf(rhino.head.rotation);
+  TweenMax.killTweensOf(rhino.head.position);
+  TweenMax.killTweensOf(rhino.tail.rotation); 
+  TweenMax.killTweensOf(rhino.smallEyeR.scale);
+  
+  resetGame();
+  
 }
 
 
@@ -984,14 +1001,15 @@ function loop(){
     if (rhino.status == "running"){
       rhino.run();
     }
-    //updateDistance();
+    updateDistance();
     updateMachinePosition();
     updateLeafPosition();
     updateObstaclePosition();
     checkCollision();
+    
   }
   
-  controls.update();
+  //controls.update();
   renderer.render(scene, camera); 
   requestAnimationFrame(loop);
 }
@@ -999,8 +1017,8 @@ function loop(){
 function init(){
 
   //UI
-  temperatureBar = document.getElementById("energyBar");
-  nowOrNeverMessage = document.getElementById("startToCareMessage");
+  time = document.getElementById("timeValue");
+  startToCareMessage = document.getElementById("startToCareMessage");
   gameStart();
 
   //set up the scene, camera and the renderer
@@ -1016,7 +1034,9 @@ function init(){
   createMachine();
   createLeaf();
   createBonusParticles();
-   createObstacle();
+  createObstacle();
+
+  //resetGame();
 
   //add the listener for the mouse interaction
   document.addEventListener('mousedown', handleMouseDown, false);
@@ -1043,7 +1063,7 @@ function handleWindowResize(){
 
 function handleMouseDown(event) {
   if (game.status == "play") rhino.jump();
-  else if (game.status == "readyToReplay"){
+  else if (game.status == "gameOver"){
     replay();
   }
 }

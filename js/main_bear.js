@@ -206,6 +206,7 @@ SnowFlake.prototype.update = function(xTarget, yTarget){
 
 Bear = function(){
 	this.fallSpeed = .001;
+  this.windTime = 0;
 	this.bodyInitPositions = [];
 	this.bearModel = new THREE.Group();
 
@@ -548,6 +549,13 @@ Bear.prototype.cool = function(xTarget, yTarget){
   this.targetSmallEyePosY = 65;
 
   this.updateBody(10);
+
+  var dt = 20000 / (xTarget*xTarget+yTarget*yTarget);
+  dt = Math.max(Math.min(dt,1), .5);
+  this.windTime += dt;
+
+  this.leftEar.rotation.z = Math.cos(this.windTime)*Math.PI/16*dt; 
+  this.rightEar.rotation.z = -Math.cos(this.windTime)*Math.PI/16*dt; 
 
 }
 

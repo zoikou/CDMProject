@@ -31,7 +31,7 @@ function resetGame(){
           turtleDefaultHeight:100,
           turtleAmpHeight:80,
           turtleAmpWidth:100,
-          turtleMoveSensivity:0.009,
+          turtleMoveSensivity:0.005,
           turtleRotXSensivity:0.0008,
           turtleRotZSensivity:0.0004,
           turtleFallSpeed:.001,

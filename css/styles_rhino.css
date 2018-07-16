@@ -55,47 +55,7 @@
 	vertical-align: top;
 }
 
-.score__label {
-	font-size: 9px;
-	position: relative;
-	margin: 0 0 0.5em 0;
-	text-align: center;
-	letter-spacing: 3px;
-	text-transform: uppercase;
-	color: #2E294E;
-}
 
-.score__value {
-	font-family: 'Federo', sans-serif;
-	font-weight: bold;
-	color: #2E294E;
-	text-align: center;
-}
-
-.score__value--energy {
-	position: relative;
-	width: 95px;
-	height: 8px;
-	margin-top: 20px;
-	border-radius: 3px;
-	background-color: #2E294E;
-}
-
-.energy-bar {
-	position: absolute;
-	top: 0;
-	right: 0;
-	bottom: 0;
-	left: 0;
-	margin: 2px;
-	background-color: #0D1B2A;
-	-webkit-animation-name: none;
-	animation-name: none;
-	-webkit-animation-duration: 150ms;
-	animation-duration: 150ms;
-	-webkit-animation-iteration-count: infinite;
-	animation-iteration-count: infinite;
-}
 
 .message {
 	font-weight: bold;
@@ -114,5 +74,34 @@
 	display: none;
 	text-indent: 0.5em;
 	letter-spacing: 0.5em;
-	color: #DDFFF7;
+	color:#FFA69E;
+}
+
+#time{
+  position:absolute;
+  left:50%;
+  top:25px;
+  transform:translate(-50%,0%);
+  user-select: none;  
+}
+
+.label{
+  position:relative;
+  font-family:'Federo', sans-serif;
+  text-transform:uppercase;
+  color:#2E294E;
+  font-size:12px;
+  letter-spacing:2px;
+  text-align:center;
+  margin-bottom:5px;
+}
+
+
+#timeValue{
+  position:relative;
+  text-transform:uppercase;
+  color:#2E294E;//dc5f45;
+  font-size:40px;
+  font-family:'Voltaire';
+  text-align:center;
 }

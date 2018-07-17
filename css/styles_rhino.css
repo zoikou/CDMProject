@@ -5,6 +5,21 @@
 	background: -webkit-linear-gradient(#6CD4FF, #A9F0D1);
 	background: linear-gradient(#6CD4FF, #A9F0D1);
 }
+#navholder {
+	position: absolute;
+	left: 0;
+	width: 100%;
+	text-align: center;
+	background-color: transparent;
+	float: none;
+	
+}
+#navbar-collapse {
+	margin-left: 25vh !important;
+}
+.navbar-collapse a{
+	/*color: white !important;*/
+}
 
 .world {
 	position: absolute;
@@ -31,7 +46,7 @@
 	color: #FFA69E;
 }
 
-.header h2 {
+.header h3 {
 	font-size: 0.585em;
 	margin: 0.5em 0;
 	white-space: nowrap;
@@ -74,7 +89,7 @@
 	display: none;
 	text-indent: 0.5em;
 	letter-spacing: 0.5em;
-	color:#FFA69E;
+	color:#071013;
 }
 
 #time{
@@ -89,7 +104,7 @@
   position:relative;
   font-family:'Federo', sans-serif;
   text-transform:uppercase;
-  color:#2E294E;
+  color:#FFA69E;
   font-size:12px;
   letter-spacing:2px;
   text-align:center;
@@ -100,7 +115,7 @@
 #timeValue{
   position:relative;
   text-transform:uppercase;
-  color:#2E294E;//dc5f45;
+  color:#FFA69E;//dc5f45;
   font-size:40px;
   font-family:'Voltaire';
   text-align:center;

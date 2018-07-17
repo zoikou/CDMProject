@@ -118,7 +118,7 @@ function createScene(){
 
 
 
-var hemisphereLight, shadowLight;
+var hemisphereLight, shadowLight, ambientLight;
 
 //ADD LIGHTS IN THE SCENE
 function createLights(){

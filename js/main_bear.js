@@ -183,7 +183,7 @@ SnowFlake = function(){
 
 SnowFlake.prototype.update = function(xTarget, yTarget){
   this.mesh.lookAt(new THREE.Vector3(0,80,60));
-  this.targetPosX = normalize(xTarget, -100, 100, -250, 150);
+  this.targetPosX = normalize(xTarget, -100, 100, -200, 150);
   this.targetPosY = normalize(yTarget, -100, 100, 150, -150);
 
   this.mesh.position.x += (this.targetPosX - this.mesh.position.x) /10;

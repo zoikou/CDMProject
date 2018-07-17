@@ -660,8 +660,9 @@ Machine = function(){
 
   this.wheel = new THREE.Mesh(wheelGeom, this.blackMat);
   this.wheel.rotation.x = Math.PI/2;
-  this.wheel.position.x = 60;
-  this.wheel.position.y= -20;
+  this.wheel.position.x = 100;
+  this.wheel.position.y = -5;
+
 
 	this.handPart1 = new THREE.Mesh(handPart1Geom, this.yellowMat);
 	this.handPart1.rotation.z = -Math.PI/2;

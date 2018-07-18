@@ -9,7 +9,6 @@ var Colors = {
 
 // GAME VARIABLES
 var game;
-var deltaTime = 0;
 var newTime = new Date().getTime();
 var oldTime = new Date().getTime();
 
@@ -24,6 +23,8 @@ var scene, camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
 
 function resetGame(){
   game = {
+          deltatime: 0,
+          fallSpeed: .001,
           temperature:100,
           freezingValue:1,
           status : "playing",
@@ -205,7 +206,7 @@ SnowFlake.prototype.update = function(xTarget, yTarget){
 }
 
 Bear = function(){
-	this.fallSpeed = .001;
+	
   this.windTime = 0;
 	this.bodyInitPositions = [];
 	this.bearModel = new THREE.Group();
@@ -503,11 +504,11 @@ Bear = function(){
 }
 
 Bear.prototype.drowning = function(){
-	this.bearModel.rotation.z += (-Math.PI/2 - this.bearModel.rotation.z)*.0002*deltaTime;
-    this.bearModel.rotation.x += 0.0003*deltaTime;
-    this.bearModel.position.z += 0.1*deltaTime;
-    this.fallSpeed *= 1.1;
-    this.bearModel.position.y -= this.fallSpeed*deltaTime;
+	this.bearModel.rotation.z += (-Math.PI/2 - this.bearModel.rotation.z)*.0002*game.deltatime;
+    this.bearModel.rotation.x += 0.0003*game.deltatime;
+    this.bearModel.position.z += 0.1*game.deltatime;
+    game.fallSpeed *= 1.1;
+    this.bearModel.position.y -= game.fallSpeed*game.deltatime;
 }
 
 Bear.prototype.look = function(xTarget, yTarget){
@@ -630,7 +631,7 @@ Sea.prototype.moveWaves = function (){
     var vprops = this.waves[i];
     v.x =  vprops.x + Math.cos(vprops.ang)*vprops.amp;
     v.y = vprops.y + Math.sin(vprops.ang)*vprops.amp;
-    vprops.ang += vprops.speed*deltaTime;
+    vprops.ang += vprops.speed*game.deltatime;
     this.mesh.geometry.verticesNeedUpdate=true;
   }
 }
@@ -756,7 +757,7 @@ function createIceberg(){
 function loop(){
 
   newTime = new Date().getTime();
-  deltaTime = newTime-oldTime;
+  game.deltatime = newTime-oldTime;
   oldTime = newTime;
 
   //TWEEN.update();
@@ -771,7 +772,7 @@ function loop(){
   sea.moveWaves();
   if(game.isSnowing){
   	snow.animate();
-  	game.isMelting = false;
+  	//game.isMelting = false;
   }
   if(game.isMelting){
   	iceberg.melting();
@@ -806,10 +807,19 @@ function loop(){
   requestAnimationFrame(loop);
 
 }
-function respawnBear(){
+function replay(){
+  hideReplay();
+ 
   bear.bearModel.position.z = 150;
   bear.bearModel.position.y = 30;
   bear.bearModel.rotation.y = -Math.PI/8;
+  bear.bearModel.rotation.x = 0;
+  bear.bearModel.rotation.z = 0;
+
+  snow.mesh.visible = false;
+  iceberg.mesh.scale.set(40, 10, 40);
+  resetGame();
+
 }
 
 function showReplay(){
@@ -893,6 +903,10 @@ function handleMouseMove(event) {
 
 function handleMouseDown(event) {
      game.isFreezing = true;
+     if (game.status == "playing") game.isFreezing = true;
+     else if (game.status == "waitingReplay"){
+    replay();
+  }
  
 }
 function handleMouseUp(event) {

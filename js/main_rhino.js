@@ -16,6 +16,12 @@ var Colors = {
 
 // GAME VARIABLES
 var game, fieldGameOver, fieldDistance, levelInterval;
+//audios downloaded from https://freesound.org/
+var audio = new Audio('assets/audio/jump.wav');
+var audio2 = new Audio('assets/audio/wrong.wav');
+var audio3 = new Audio('assets/audio/obstacle.wav');
+var audio4 = new Audio('assets/audio/bonus.wav');
+
 //SCENE VARIABLES
 var rhino, machine, obstacle, leaf, bonusParticles;
 
@@ -25,6 +31,9 @@ var scene, camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
   	windowHalfY,
     mousePos = {x:0,y:0};
 
+//LIGHTS
+var globalLight, shadowLight;
+
 function gameStart(){
   game = {
       delta : 0,
@@ -32,7 +41,6 @@ function gameStart(){
 			speed : 6,
 			distance : 0,
 			level : 1,
-			initSpeed : 5,
 			maxSpeed : 48,
 			machinePos : .65,
 			machinePosTarget : .65,
@@ -51,8 +59,7 @@ function createScene(){
   windowHalfY = HEIGHT / 2;
   //create the scene
   scene= new THREE.Scene();
-  //create a fog effect
-  //scene.fog = new THREE.Fog(0x38AECC, 100, 950);
+  
   //create a clock object
   clock = new THREE.Clock();
   //create the camera
@@ -98,7 +105,6 @@ function createScene(){
   window.addEventListener('resize', handleWindowResize, false);
 }
 
-var globalLight, shadowLight;
 
 //ADD LIGHTS IN THE SCENE
 function createLights(){
@@ -122,6 +128,7 @@ function createLights(){
 Rhino = function(){
 	this.status = "running";
     this.runningCycle = 0;
+    //all the groups
     this.mesh = new THREE.Group();
     this.body = new THREE.Group();
     this.torso = new THREE.Group();
@@ -129,7 +136,8 @@ Rhino = function(){
     this.legFR = new THREE.Group();
     this.head = new THREE.Group();
     this.mesh.add(this.body);
-
+    
+    //material for the rhino
     this.whiteMat = new THREE.MeshPhongMaterial ({
     color:Colors.white, 
     shading:THREE.FlatShading
@@ -142,7 +150,8 @@ Rhino = function(){
     color:Colors.black, 
     shading:THREE.FlatShading
   });
-
+  
+  //all the geometries
 	var torsoGeom = new THREE.CylinderGeometry(10, 10, 25, 5);
 	var legPart1Geom = new THREE.CylinderGeometry(2.2, 1.5, 3, 32);
 	var legPart2Geom = new THREE.CylinderGeometry(1.5, 2.2, 6, 32);
@@ -170,9 +179,9 @@ Rhino = function(){
 
     
     //body
-	this.torsoMesh = new THREE.Mesh(torsoGeom, this.greyMat);
-	this.torsoMesh.rotation.z = Math.PI/2;
-	this.torsoMesh.rotation.x = Math.PI/3.5;
+	  this.torsoMesh = new THREE.Mesh(torsoGeom, this.greyMat);
+	  this.torsoMesh.rotation.z = Math.PI/2;
+	  this.torsoMesh.rotation.x = Math.PI/3.5;
     this.torsoMesh.castShadow = true;
     this.torso.add(this.torsoMesh);
     
@@ -352,6 +361,7 @@ Rhino = function(){
    });
 }
 
+//animate the rhino jump
 Rhino.prototype.jump = function(){
   if (this.status == "jumping") return;
   this.status = "jumping";
@@ -359,6 +369,7 @@ Rhino.prototype.jump = function(){
   var totalSpeed = 10 / game.speed;
   var jumpHeight = 20;
   
+  //animate the rhino parts using TweenMax.js
   TweenMax.to(this.earL.rotation, totalSpeed, {z:"+=.3", ease:Back.easeOut});
   TweenMax.to(this.earR.rotation, totalSpeed, {z:"-=.3", ease:Back.easeOut});
   
@@ -367,18 +378,19 @@ Rhino.prototype.jump = function(){
   TweenMax.to(this.legBL.rotation, totalSpeed, {z:"+=.7", ease:Back.easeOut});
   TweenMax.to(this.legBR.rotation, totalSpeed, {z:"-=.7", ease:Back.easeOut});
   
-  TweenMax.to(this.tail.rotation, totalSpeed, {z:"+=1", ease:Back.easeOut});
+  TweenMax.to(this.tail.rotation, totalSpeed, {x:"+=1", ease:Back.easeOut});
   
   TweenMax.to(this.mouth.rotation, totalSpeed, {z:.5, ease:Back.easeOut});
   
   TweenMax.to(this.mesh.position, totalSpeed/2, {y:jumpHeight, ease:Power2.easeOut});
   TweenMax.to(this.mesh.position, totalSpeed/2, {y:0, ease:Power4.easeIn, delay:totalSpeed/2, onComplete: function(){
-    //t = 0;
+  
     _this.status="running";
   }});
   
 }
 
+//animate the rhino run
 Rhino.prototype.run = function(){
   this.status = "running";
   var s = Math.min(game.speed,game.maxSpeed);
@@ -386,6 +398,7 @@ Rhino.prototype.run = function(){
   this.runningCycle = this.runningCycle % (Math.PI*2);
   var t = this.runningCycle;
   
+  //animate each different part of the rhino using sine and cosine equations
   this.legFR.rotation.z = Math.sin(t)*Math.PI/4;
   this.legFR.position.y = -5.5 - Math.sin(t);
   this.legFR.position.x = 7.5 + Math.cos(t);
@@ -402,7 +415,6 @@ Rhino.prototype.run = function(){
   this.legBR.position.y = -5.5 - Math.sin(t+3.4);
   this.legBR.position.x = -7.5 + Math.cos(t+3.4);
   
-  //this.torso.rotation.x = Math.sin(t)*Math.PI/8;
   this.torso.position.y = 2-Math.sin(t+Math.PI/2)*2;
 
   this.earL.rotation.z = Math.cos(-Math.PI/2 + t)*(1*.2);
@@ -412,25 +424,20 @@ Rhino.prototype.run = function(){
   this.head.rotation.z = -.1+Math.sin(-t-1)*.4;
   this.mouth.rotation.z = .2 + Math.sin(t+Math.PI+.3)*.4;
   
-  this.tail.rotation.x = .2 + Math.sin(t-Math.PI/2);
+  this.tail.rotation.z = .2 + Math.sin(t-Math.PI/2);
   
   this.smallEyeR.scale.y = .5 + Math.sin(t+Math.PI)*.5;
 }
 
+//animate the rhino when is inside the machine hand
 Rhino.prototype.catch = function(){
   var _this = this;
   var sp = 1;
   var ease = Power4.easeOut;
   
+  //kill the previous tween of the eye mesh
   TweenMax.killTweensOf(this.smallEyeR.scale);
-  
-  /*this.body.rotation.x = 0;
-  this.torso.rotation.x = 0;
-  this.body.position.y = 0;
-  this.torso.position.y = 7;
-  
-  TweenMax.to(this.mesh.rotation, sp, {y:0, ease:ease});
-  TweenMax.to(this.mesh.position, sp, {y:-7, z:6, ease:ease});*/
+  //animate the parts with TweenMax.js
   TweenMax.to(this.head.rotation, sp, {z:Math.PI/6, ease:ease, onComplete:function(){_this.nod();}});
   
   TweenMax.to(this.earL.rotation, sp, {z:-Math.PI/3, ease:ease});
@@ -444,6 +451,7 @@ Rhino.prototype.catch = function(){
   TweenMax.to(this.smallEyeR.scale, sp, {y:1, ease:ease});
   TweenMax.to(this.smallEyeL.scale, sp, {y:1, ease:ease});
 }
+//animate the rhino nod
 Rhino.prototype.nod = function(){
   var _this = this;
   var sp = 1 + Math.random()*2;
@@ -466,7 +474,7 @@ Rhino.prototype.nod = function(){
 
 BonusParticles = function(){
   this.mesh = new THREE.Group();
-
+  //particles materials 
   this.greenMat = new THREE.MeshPhongMaterial ({
     color:Colors.green, 
     shading:THREE.FlatShading
@@ -476,7 +484,8 @@ BonusParticles = function(){
     color:Colors.cyan, 
     shading:THREE.FlatShading
   });
-
+  
+  //particles geometries
   var bigParticleGeom = new THREE.CubeGeometry(10,10,10,1);
   var smallParticleGeom = new THREE.CubeGeometry(5,5,5,1);
   this.parts = [];
@@ -491,6 +500,7 @@ BonusParticles = function(){
   }
 }
 
+//animate the particles explosion
 BonusParticles.prototype.explose = function(){
   var _this = this;
   var explosionSpeed = .5;
@@ -508,31 +518,21 @@ BonusParticles.prototype.explose = function(){
   }
 }
 
+//make the particle invisible
 function removeParticle(p){
   p.visible = false;
 }
 
-Fir = function() {
-  this.darkGreenMat = new THREE.MeshPhongMaterial ({
-    color:Colors.darkGreen, 
-    shading:THREE.FlatShading
-  });
-  var height = 50;
-  var truncGeom = new THREE.CylinderGeometry(2,2,height, 6,1);
-  truncGeom.applyMatrix(new THREE.Matrix4().makeTranslation(0,height/2,0));
-  this.mesh = new THREE.Mesh(truncGeom, darkGreenMat);
-  this.mesh.castShadow = true;
-}
 
 var firs = new THREE.Group();
 
+//create the Firs and position them around the floor object
 function createFirs(){
   
   var nTrees = 100;
    for(var i=0; i< nTrees; i++){
     var phi = i*(Math.PI*2)/nTrees;
     var theta = Math.PI/2;
-    //theta += .25 + Math.random()*.3; 
     theta += (Math.random()>.05)? .25 + Math.random()*.3 : - .35 -  Math.random()*.1;
    
     var fir = new Tree();
@@ -547,44 +547,39 @@ function createFirs(){
   }
 }
 
+//the tree object is actually a trunc geometry
 Tree = function(){
 	this.mesh = new THREE.Object3D();
 	this.trunc = new Trunc();
 	this.mesh.add(this.trunc.mesh);
 }
 
-
+//the trunc object
 Trunc = function(){
+  //trunc height and radius 
   var truncHeight = 20 + Math.random()*30;
   var topRadius = 1+Math.random()*5;
   var bottomRadius = 5+Math.random()*5;
-
-  this.darkGreenMat = new THREE.MeshPhongMaterial ({
-    color:Colors.darkGreen, 
-    shading:THREE.FlatShading
-  });
-  this.greenMat = new THREE.MeshPhongMaterial ({
-    color:Colors.green, 
-    shading:THREE.FlatShading
-  });
-  this.lightGreenMat = new THREE.MeshPhongMaterial ({
-    color:Colors.lightGreen, 
-    shading:THREE.FlatShading
-  });
+  
+  //material 
   this.brownMat = new THREE.MeshPhongMaterial ({
     color:Colors.brown, 
     shading:THREE.FlatShading
   });
-  var mats = [this.darkGreenMat, this.greenMat, this.lightGreenMat, this.brownMat];
-  var matTrunc = this.brownMat;//mats[Math.floor(Math.random()*mats.length)];
-  var nhSegments = 3;//Math.ceil(2 + Math.random()*6);
-  var nvSegments = 3;//Math.ceil(2 + Math.random()*6);
+
+  var matTrunc = this.brownMat;
+  var nhSegments = 3;
+  var nvSegments = 3;
+
+  //trunc geometry
   var geom = new THREE.CylinderGeometry(topRadius,bottomRadius,truncHeight, nhSegments, nvSegments);
+  //modify the pivot of the geometry
   geom.applyMatrix(new THREE.Matrix4().makeTranslation(0,truncHeight/2,0));
   
   this.mesh = new THREE.Mesh(geom, matTrunc);
   
   for (var i=0; i<geom.vertices.length; i++){
+    //modify the position of the vertices randomly
     var noise = Math.random() ;
     var v = geom.vertices[i];
     v.x += -noise + Math.random()*noise*2;
@@ -595,11 +590,12 @@ Trunc = function(){
      
     
     // BRANCHES
-    
+  
     if (Math.random()>.5 && v.y > 10 && v.y < truncHeight - 10){
       var h = 3 + Math.random()*5;
       var thickness = .2 + Math.random();
       
+      //create a branch geometry and position it to the trunc's vertex position in x,y,z axis
       var branchGeometry = new THREE.CylinderGeometry(thickness/2, thickness, h, 3, 1);
       branchGeometry.applyMatrix(new THREE.Matrix4().makeTranslation(0,h/2,0));
       var branch = new THREE.Mesh(branchGeometry, matTrunc);
@@ -607,6 +603,8 @@ Trunc = function(){
       branch.position.y = v.y;
       branch.position.z = v.z;
       
+      //create a new Vector3 in respect to the vertex.x/z position
+      //rotate the branch using quaternion to match the newly created vector's direction
       var vec = new THREE.Vector3(v.x, 2, v.z);
       var axis = new THREE.Vector3(0,1,0);
       branch.quaternion.setFromUnitVectors(axis, vec.clone().normalize());
@@ -617,9 +615,9 @@ Trunc = function(){
     
   }
   
-  
   this.mesh.castShadow = true;
 }
+
 
 Machine = function(){
 	this.runningCycle = 0;
@@ -627,7 +625,8 @@ Machine = function(){
     this.mesh = new THREE.Group();
     this.body = new THREE.Group();
     this.hand = new THREE.Group();
-
+   
+   //materials
     this.yellowMat = new THREE.MeshPhongMaterial ({
     color:Colors.yellow, 
     shading:THREE.FlatShading
@@ -640,7 +639,8 @@ Machine = function(){
     color:Colors.grey, 
     shading:THREE.FlatShading
   });
-
+  
+  //all the geometries
 	var supportGeom = new THREE.BoxGeometry(7, 130, 7);
 	supportGeom.applyMatrix(new THREE.Matrix4().makeTranslation(0,65,0));
 	var cylinderGeom = new THREE.CylinderGeometry(8,8,8,20);
@@ -652,18 +652,19 @@ Machine = function(){
 
 	this.support= new THREE.Mesh(supportGeom, this.yellowMat);
 	this.support.rotation.z = -Math.PI/4;
-
+  
 	this.cylinder = new THREE.Mesh(cylinderGeom, this.greyMat);
 	this.cylinder.rotation.x = Math.PI/2;
 	this.cylinder.position.x = 90;
 	this.cylinder.position.y= 90;
-
+  
+  //wheel
   this.wheel = new THREE.Mesh(wheelGeom, this.blackMat);
   this.wheel.rotation.x = Math.PI/2;
   this.wheel.position.x = 100;
   this.wheel.position.y = -5;
 
-
+  //hand
 	this.handPart1 = new THREE.Mesh(handPart1Geom, this.yellowMat);
 	this.handPart1.rotation.z = -Math.PI/2;
 	this.handPart1.position.x = 90;
@@ -680,7 +681,8 @@ Machine = function(){
   this.rhinoHolder.position.y = -16;
   this.rhinoHolder.rotation.y = -Math.PI/4;
   this.handPart2.add(this.rhinoHolder);
-
+  
+  //dung
 	this.dung1 = new THREE.Group();
 	this.dungPart1 = new THREE.Mesh(handPart3Geom, this.greyMat);
 	this.dungPart1.rotation.x = -Math.PI/4;
@@ -707,8 +709,6 @@ Machine = function(){
   this.handPart2.add(this.dung1);
   this.handPart2.add(this.dung2);
   
-  //this.dung1.position.x =-10;
-  //this.handPart1.rotation.z = -Math.PI/2 - Math.PI/8;
 
 	this.body.add(this.support);
 	this.body.add(this.cylinder);
@@ -718,6 +718,7 @@ Machine = function(){
   this.mesh.add(this.wheel);
 }
 
+// make the machine hand approaching the rhino
 Machine.prototype.follow = function(){
   var s = Math.min(game.speed,game.maxSpeed);
   this.runningCycle += game.delta * s * .7;
@@ -728,6 +729,7 @@ Machine.prototype.follow = function(){
   this.handPart1.rotation.z = -Math.PI/2 - Math.sin(t+.4)*(Math.PI/6 - Math.PI/8 );
 }
 
+//animate the action of catching the rhino
 Machine.prototype.catch = function(){
   var sp = 6;
   var ease = Power4.easeOut;
@@ -741,6 +743,7 @@ Machine.prototype.catch = function(){
   TweenMax.to(this.body.position, sp, {x:-10, ease:ease});
 }
 
+
 Leaf = function(){
   this.angle = 0;
   this.mesh = new THREE.Group();
@@ -753,6 +756,7 @@ Leaf = function(){
   
   var leafGeom = new THREE.CubeGeometry(5,10,1,1);
   leafGeom.applyMatrix(new THREE.Matrix4().makeTranslation(0,5,0));
+  //modify the vertices of the leaf geometry
   leafGeom.vertices[2].x-=1;
   leafGeom.vertices[3].x-=1;
   leafGeom.vertices[6].x+=1;
@@ -762,15 +766,10 @@ Leaf = function(){
   this.leaf1.position.y = 7;
   this.leaf1.rotation.z = .3;
   this.leaf1.rotation.x = .2;
-  
+  this.leaf1.castShadow = true;
+  this.leaf1.receiveShadow = true;
   this.mesh.add(this.leaf1);
 
-  this.mesh.traverse(function(object) {
-    if (object instanceof THREE.Mesh) {
-      object.castShadow = true;
-      object.receiveShadow = true;
-    }
-  });
 }
 
 obstacle = function(){
@@ -793,13 +792,14 @@ obstacle = function(){
 
 }
 
-
+//create the rhino object
 function createRhino() {
   rhino = new Rhino();
   rhino.mesh.scale.set(0.8,0.8,0.8);
   scene.add(rhino.mesh);
 }
 
+//create the machine object
 function createMachine(){
 	machine = new Machine();
 	machine.mesh.position.x = -230;
@@ -807,6 +807,7 @@ function createMachine(){
 	scene.add(machine.mesh);
 }
 
+//create the floor object
 function createFloor() {
   
   floorShadow = new THREE.Mesh(new THREE.SphereGeometry(game.floorRadius, 50, 50), new THREE.MeshPhongMaterial({
@@ -834,11 +835,13 @@ function createFloor() {
   
 }
 
+//crate the leaf object
 function createLeaf(){
   leaf = new Leaf();
   scene.add(leaf.mesh);
 }
 
+//update the position of the leaf around the floor
 function updateLeafPosition(){
   leaf.mesh.rotation.y += game.delta * 6;
   leaf.mesh.rotation.x = Math.PI/4 - (game.floorRotation+leaf.angle);
@@ -847,6 +850,7 @@ function updateLeafPosition(){
   
 }
 
+//create the obstacle object
 function createObstacle(){
   obstacle = new obstacle();
   obstacle.mesh.scale.set(1.5,1.5,1.5);
@@ -854,6 +858,7 @@ function createObstacle(){
   scene.add(obstacle.mesh);
 }
 
+//update the obstacle position around the floor
 function updateObstaclePosition(){
   if (obstacle.status=="flying")return;
   
@@ -866,15 +871,18 @@ function updateObstaclePosition(){
   
 }
 
+//animate the floor rotation
 function updateFloorRotation(){
   game.floorRotation += game.delta*.03 * game.speed;
   game.floorRotation = game.floorRotation%(Math.PI*2);
   floor.rotation.z = game.floorRotation;
 }
+//animate the wheel rotation
 function updateWheelRotation(){
   machine.wheel.rotation.y = -game.floorRotation;
 }
 
+//update the machine position
 function updateMachinePosition(){
   machine.follow();
   game.machinePosTarget -= game.delta*game.machineAcceleration;
@@ -887,6 +895,7 @@ function updateMachinePosition(){
   machine.body.position.x = 100 + Math.cos(angle)*(game.floorRadius+15);
 }
 
+//handle the game over actions
 function gameOver(){
   startToCareMessage.style.display="block";
   game.status = "gameOver";
@@ -895,9 +904,11 @@ function gameOver(){
   machine.rhinoHolder.add(rhino.mesh);
   leaf.mesh.visible = false;
   obstacle.mesh.visible = false;
+  audio2.play();
   clearInterval(game.levelInterval);
 }
 
+//create the bonus particles object
 function createBonusParticles(){
   bonusParticles = new BonusParticles();
   bonusParticles.mesh.visible = false;
@@ -906,7 +917,7 @@ function createBonusParticles(){
 }
 
 
-
+//check for collisions amongst rhino and the other scene objects (leaf,obstacle)
 function checkCollision(){
   var db = rhino.mesh.position.clone().sub(leaf.mesh.position.clone());
   var dm = rhino.mesh.position.clone().sub(obstacle.mesh.position.clone());
@@ -920,18 +931,23 @@ function checkCollision(){
   }
 }
 
+//initiate particle explosion and update the leaf's angle around the floor
+//increase the distance between the rhino and the machine
 function getBonus(){
   bonusParticles.mesh.position.copy(leaf.mesh.position);
   bonusParticles.mesh.visible = true;
   bonusParticles.explose();
   leaf.angle += Math.PI + Math.PI/8;
-  //speed*=.95;
+  audio4.play();
   game.machinePosTarget += .06;
   
 }
 
+//animate the obstacle fly and update the obstacle's angle around the floor
+//decrease the distance between the rhino and the machine
 function getMalus(){
   obstacle.status="flying";
+  audio3.play();
   var tx = (Math.random()>.5)? -20-Math.random()*10 : 20+Math.random()*5;
   TweenMax.to(obstacle.mesh.position, 4, {x:tx, y:Math.random()*50, z:350, ease:Power4.easeOut});
   TweenMax.to(obstacle.mesh.rotation, 4, {x:Math.PI*3, z:Math.PI*3, y:Math.PI*6, ease:Power4.easeOut, onComplete:function(){
@@ -950,13 +966,14 @@ function getMalus(){
   game.machinePosTarget -= .01;
 }
 
+//update the game distance
 function updateDistance(){
   game.distance += game.delta*game.speed;
   var t =  game.distance/2;
   time.innerHTML = Math.floor(t);
 }
 
-
+//reset the game
 function resetGame(){
   scene.add(rhino.mesh);
   rhino.mesh.position.y = 0;
@@ -971,8 +988,8 @@ function resetGame(){
 
   rhino.status = "running";
 
-  //audio.play();
 }
+//kill all the tweens that exist in the objects to reset the game
 function replay(){
   
   game.status = "preparingToReplay"
@@ -992,11 +1009,13 @@ function replay(){
   
 }
 
-
+//LOOP FUNCTION
 function loop(){
   game.delta = clock.getDelta();
   updateFloorRotation();
   updateWheelRotation();
+
+  //check the game status
   if (game.status == "play"){
     
     if (rhino.status == "running"){
@@ -1050,6 +1069,19 @@ function init(){
 
 window.addEventListener('load', init, false);
 
+//function used from Karim Maaloul in codepen.io
+function normalize(v,vmin,vmax,tmin, tmax){
+
+  var nv = Math.max(Math.min(v,vmax), vmin);
+  var dv = vmax-vmin;
+  var pc = (nv-vmin)/dv;
+  var dt = tmax-tmin;
+  var tv = tmin + (pc*dt);
+  return tv;
+
+}
+
+//EVENT LISTENER FUNCTIONS
 
 function handleWindowResize(){
   //update height and width of the renderer and the camera
@@ -1063,20 +1095,12 @@ function handleWindowResize(){
 }
 
 function handleMouseDown(event) {
-  if (game.status == "play") rhino.jump();
+  if (game.status == "play") {
+    rhino.jump();
+    audio.play();
+  }
   else if (game.status == "gameOver"){
     replay();
   }
 }
 
-//function used from Karim Maaloul in codepen
-function normalize(v,vmin,vmax,tmin, tmax){
-
-  var nv = Math.max(Math.min(v,vmax), vmin);
-  var dv = vmax-vmin;
-  var pc = (nv-vmin)/dv;
-  var dt = tmax-tmin;
-  var tv = tmin + (pc*dt);
-  return tv;
-
-}

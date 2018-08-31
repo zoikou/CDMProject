@@ -11,15 +11,21 @@ var Colors = {
 var game;
 var newTime = new Date().getTime();
 var oldTime = new Date().getTime();
+//audios downloaded from https://freesound.org/
+var audio = new Audio('assets/audio/wind.mp3');
+var audio2 = new Audio('assets/audio/wrong.wav');
 
 //SCENE VARIABLES
-var sea, snowFlake, bear, snow, iceberg, game;
+var sea, snowFlake, bear, snow, iceberg;
 
 //THREE RELATED VARIABLES
 var scene, camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH, renderer, container, clock, controls,
     windowHalfX,
   	windowHalfY,
     mousePos = {x:0,y:0};
+
+//LIGHTS
+var hemisphereLight, shadowLight, ambientLight, backLight;
 
 function resetGame(){
   game = {
@@ -42,8 +48,7 @@ function createScene(){
   windowHalfY = HEIGHT / 2;
   //create the scene
   scene= new THREE.Scene();
-  //create a fog effect
-  //scene.fog = new THREE.Fog(0x38AECC, 100, 950);
+
   //create a clock object
   clock = new THREE.Clock();
   //create the camera
@@ -87,7 +92,6 @@ function createScene(){
   window.addEventListener('resize', handleWindowResize, false);
 }
 
-var hemisphereLight, shadowLight, ambientLight, backLight;
 
 //ADD LIGHTS IN THE SCENE
 function createLights(){
@@ -184,13 +188,14 @@ SnowFlake = function(){
 
 SnowFlake.prototype.update = function(xTarget, yTarget){
   this.mesh.lookAt(new THREE.Vector3(0,80,60));
+  //get the target X,Y locations in the defined screen space using the normalize function
   this.targetPosX = normalize(xTarget, -100, 100, -200, 150);
   this.targetPosY = normalize(yTarget, -100, 100, 150, -150);
-
+  //update the mesh position 
   this.mesh.position.x += (this.targetPosX - this.mesh.position.x) /10;
   this.mesh.position.y += (this.targetPosY - this.mesh.position.y) /10;
   
-  //this.targetSpeed = (this.isFreezing) ? .3 : .01;
+  //update the snowflake's acceleration 
   if (this.isFreezing && this.speed < .5){
     this.acceleration +=.001;
     this.speed += this.acceleration;
@@ -200,6 +205,7 @@ SnowFlake.prototype.update = function(xTarget, yTarget){
     this.speed *= .98;
   }
  
+ //animate the snowflake 
   this.iceFlakeGroup1.rotation.z += this.speed; 
   this.iceFlakeGroup2.rotation.z += this.speed;
   this.iceFlakeGroup3.rotation.z += this.speed;
@@ -503,6 +509,7 @@ Bear = function(){
 
 }
 
+//animate the drowning of the bear
 Bear.prototype.drowning = function(){
 	this.bearModel.rotation.z += (-Math.PI/2 - this.bearModel.rotation.z)*.0002*game.deltatime;
     this.bearModel.rotation.x += 0.0003*game.deltatime;
@@ -511,7 +518,9 @@ Bear.prototype.drowning = function(){
     this.bearModel.position.y -= game.fallSpeed*game.deltatime;
 }
 
+//make the bear look the snowFlake object
 Bear.prototype.look = function(xTarget, yTarget){
+  //find the target positions using the normalize function
   this.targetHeadRotY = normalize(xTarget, -100, 100, -Math.PI/4, Math.PI/4);
   this.targetHeadRotX = normalize(yTarget, -100,100, -Math.PI/4, Math.PI/4);
   this.targetHeadPosX = normalize(xTarget, -100, 100, 70,-70);
@@ -523,20 +532,15 @@ Bear.prototype.look = function(xTarget, yTarget){
   this.targetSmallEyeYScale = 1;
   this.targetSmallEyeZScale = 1;
   this.targetSmallEyePosY = normalize(yTarget, -100,100, 80,60);
-  //this.targetLeftSmallEyePosZ = normalize(xTarget, -100, 100, 162, 142);
-  //this.targetRightSmallEyePosZ = normalize(xTarget, -100, 100, 142, 162);
-  
-  //this.tSmilePosX = 0;
-  //this.targetMouthPosZ = 174;
-  //this.tSmilePosZ = 173;
-  //this.tSmilePosY = -15;
-  //this.tSmileRotZ = -Math.PI;
-    
+
+ //update the body of the bear
   this.updateBody(10);
  
 }
 
+//animate the cooling of the bear
 Bear.prototype.cool = function(xTarget, yTarget){
+  //find the target positions using reversed values than the 'look' action
   this.targetHeadRotY = normalize(xTarget, -100, 100, Math.PI/4, -Math.PI/4);
   this.targetHeadRotX = normalize(yTarget, -100,100, Math.PI/4, -Math.PI/4);
   this.targetHeadPosX = normalize(xTarget, -100, 100, -70, 70);
@@ -548,13 +552,15 @@ Bear.prototype.cool = function(xTarget, yTarget){
   this.targetSmallEyeYScale = 0.1;
   this.targetSmallEyeZScale = 0.2;
   this.targetSmallEyePosY = 65;
-
+  
+  //update the body of the bear
   this.updateBody(10);
-
+  
+  //adjust the delta time
   var dt = 20000 / (xTarget*xTarget+yTarget*yTarget);
   dt = Math.max(Math.min(dt,1), .5);
   this.windTime += dt;
-
+  //animate the ears
   this.leftEar.rotation.z = Math.cos(this.windTime)*Math.PI/16*dt; 
   this.rightEar.rotation.z = -Math.cos(this.windTime)*Math.PI/16*dt; 
 
@@ -562,6 +568,7 @@ Bear.prototype.cool = function(xTarget, yTarget){
 
 Bear.prototype.updateBody = function(speed){
   
+  //update the different parts of the bear object (position, rotation and scale)
   this.headGroup.rotation.y += (this.targetHeadRotY - this.headGroup.rotation.y) / speed;
   this.headGroup.rotation.x += (this.targetHeadRotX - this.headGroup.rotation.x) / speed;
   this.headGroup.position.x += (this.targetHeadPosX-this.headGroup.position.x) / speed; 
@@ -579,33 +586,31 @@ Bear.prototype.updateBody = function(speed){
   
   this.leftSmallEye.position.y += (this.targetSmallEyePosY - this.leftSmallEye.position.y) / speed;
   this.rightSmallEye.position.y = this.leftSmallEye.position.y;
-  //this.leftSmallEye.position.z += (this.targetLeftSmallEyePosZ - this.leftSmallEye.position.z) / speed;
-  //this.rightSmallEye.position.z += (this.targetRightSmallEyePosZ - this.rightSmallEye.position.z) / speed;
   
-  
-  /*this.smile.position.x += (this.tSmilePosX - this.smile.position.x) / speed;
-  this.mouth.position.z += (this.tMouthPosZ - this.mouth.position.z) / speed;
-  this.smile.position.z += (this.tSmilePosZ - this.smile.position.z) / speed;
-  this.smile.position.y += (this.tSmilePosY - this.smile.position.y) / speed;
-  this.smile.rotation.z += (this.tSmileRotZ - this.smile.rotation.z) / speed;*/
 }
 
 Sea = function(){
   var geomSea = new THREE.CylinderGeometry(2000,2000,3000,40,10);
   geomSea.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI/2));
+  // by merging the vertices we ensure continuity of the waves
   geomSea.mergeVertices();
+  // get the vertices
   var length = geomSea.vertices.length;
-
+  // create an array to store new data associated to each vertex
   this.waves = [];
 
   for (var i=0;i<length;i++){
+    //get each vertex
     var v = geomSea.vertices[i];
-    //v.y = Math.random()*30;
+    //store some data associated to it
     this.waves.push({y:v.y,
                      x:v.x,
                      z:v.z,
+                     //a random angle
                      ang:Math.random()*Math.PI*2,
+                     //a random distance
                      amp:5 + Math.random()*(20-5),
+                     //a random speed 
                      speed:0.001 + Math.random()*(0.003 - 0.001)
                     });
   };
@@ -624,20 +629,27 @@ Sea = function(){
 }
 
 Sea.prototype.moveWaves = function (){
+  //get the vertices
   var verts = this.mesh.geometry.vertices;
   var l = verts.length;
   for (var i=0; i<l; i++){
     var v = verts[i];
+    //get the data associated to it
     var vprops = this.waves[i];
+    //update the position of the vertex
     v.x =  vprops.x + Math.cos(vprops.ang)*vprops.amp;
     v.y = vprops.y + Math.sin(vprops.ang)*vprops.amp;
+    //increment the angle for the next frame
     vprops.ang += vprops.speed*game.deltatime;
+    //let three.js know that the geometry has changed
     this.mesh.geometry.verticesNeedUpdate=true;
   }
 }
 
+//snow particles
 Snow = function(){
 	var snowGeo = new THREE.Geometry();
+  //use a points material for the particle geometry where a .png is loaded
 	var snowMat = new THREE.PointsMaterial({
 		color: Colors.white,
 		size: 10,
@@ -651,6 +663,7 @@ Snow = function(){
 	var snowCount = 20000;
 	var snowDistance = 100;
 
+  //position each particle randomly inbetween the defined distance in all axis
 	for (var i=0; i<snowCount; i++) {
 		var posX = (Math.random() - 0.5) * snowDistance;
 		var posY = (Math.random() - 0.5) * snowDistance;
@@ -666,12 +679,16 @@ Snow = function(){
 	);
 }
 
+//animate the particles
 Snow.prototype.animate = function(){
 	this.mesh.geometry.vertices.forEach(function(particle) {
 		particle.x += (Math.random() - 1) * 0.1;
 		particle.y += (Math.random() - 0.75) * 0.1;
 		particle.z += (Math.random()) * 0.1;
-
+    
+  //the particles are moving towards the camera of the scene
+  //if they go outside of the view spectrum of the camera they will return back so that they won't dissapear 
+  //and give the impression that particles are continuously spawn
 			if (particle.x < -50) {
 			particle.x = 50;
 		}
@@ -703,6 +720,7 @@ Iceberg = function(){
   this.mesh.castShadow = true;
 }
 
+//scale the iceberg to simulate shrinking
 Iceberg.prototype.melting = function(){
 	this.mesh.scale.x -= 0.01
 	this.mesh.scale.z -= 0.01
@@ -715,13 +733,14 @@ Iceberg.prototype.melting = function(){
 	}
 
 }
-
+//create the snowFlake object
 function createSnowFlake(){
 	snowFlake = new SnowFlake();
     snowFlake.mesh.position.z = 400;
  	scene.add(snowFlake.mesh);
 }
 
+//create the bear object
 function createBear(){
   bear = new Bear();
   bear.bearModel.position.z = 150;
@@ -731,6 +750,7 @@ function createBear(){
   scene.add(bear.bearModel);
 }
 
+//create the snow particles
 function createSnow(){
   snow = new Snow();
   snow.mesh.position.z = -1500;
@@ -739,6 +759,7 @@ function createSnow(){
   snow.mesh.visible = false;
 }
 
+//create the sea object
 function createSea(){
   sea = new Sea();
   sea.mesh.position.y = -2150;
@@ -746,6 +767,7 @@ function createSea(){
   scene.add(sea.mesh);
 }
 
+//create the iceberg object
 function createIceberg(){
   iceberg = new Iceberg();
   iceberg.mesh.scale.set(40, 10, 40);
@@ -754,13 +776,14 @@ function createIceberg(){
   scene.add(iceberg.mesh);
 }
 
+//LOOP FUNCTION
 function loop(){
 
   newTime = new Date().getTime();
   game.deltatime = newTime-oldTime;
   oldTime = newTime;
 
-  //TWEEN.update();
+
   var timeElapsed = clock.getElapsedTime();
   
   var xTarget = (mousePos.x-windowHalfX);
@@ -772,17 +795,18 @@ function loop(){
   sea.moveWaves();
   if(game.isSnowing){
   	snow.animate();
-  	//game.isMelting = false;
-  }
+  	}
   if(game.isMelting){
   	iceberg.melting();
   }
   
+  //check the game status and call the appropriate functions
   if (game.status=="playing"){
   	if(!game.isFreezing){
   		bear.look(xTarget, yTarget);
   	}else{
         bear.cool(xTarget, yTarget);
+        audio.play();
   	}
 
     if(game.isDrowning){
@@ -792,8 +816,10 @@ function loop(){
   }else if(game.status=="gameover"){
     
     bear.drowning();
+
     if (bear.bearModel.position.y <-600){
       showReplay();
+      audio2.play();
       game.status = "waitingReplay";
 
     }
@@ -807,15 +833,20 @@ function loop(){
   requestAnimationFrame(loop);
 
 }
+
+//handle the replay actions
 function replay(){
+  //hide the message
   hideReplay();
- 
+  
+  //bring the bear to its intitial position
   bear.bearModel.position.z = 150;
   bear.bearModel.position.y = 30;
   bear.bearModel.rotation.y = -Math.PI/8;
   bear.bearModel.rotation.x = 0;
   bear.bearModel.rotation.z = 0;
-
+  
+  //make the snow particles invisible
   snow.mesh.visible = false;
   iceberg.mesh.scale.set(40, 10, 40);
   resetGame();
@@ -830,6 +861,7 @@ function hideReplay(){
   nowOrNeverMessage.style.display="none";
 }
 
+//update the appearence of the temperature bar
 function updateTemperature(){
   temperatureBar.style.right = (100-game.temperature)+"%";
   temperatureBar.style.backgroundColor = (game.temperature<50)? "#0D1B2A" : "#f25346";
@@ -845,6 +877,7 @@ function updateTemperature(){
   }
 }
 
+//decrease temperature
 function decreaseTemperature(){
   game.temperature -= game.freezingValue;
   game.temperature = Math.max(0, game.temperature);
@@ -897,12 +930,25 @@ function handleWindowResize(){
   camera.updateProjectionMatrix();
 }
 
+//function used from Karim Maaloul in codepen.io
+function normalize(v,vmin,vmax,tmin, tmax){
+
+  var nv = Math.max(Math.min(v,vmax), vmin);
+  var dv = vmax-vmin;
+  var pc = (nv-vmin)/dv;
+  var dt = tmax-tmin;
+  var tv = tmin + (pc*dt);
+  return tv;
+
+}
+
+//EVENT LISTENER FUNCTIONS
+
 function handleMouseMove(event) {
   mousePos = {x:event.clientX, y:event.clientY};
 }
 
 function handleMouseDown(event) {
-     game.isFreezing = true;
      if (game.status == "playing") game.isFreezing = true;
      else if (game.status == "waitingReplay"){
     replay();
@@ -933,14 +979,3 @@ function handleTouchMove(event) {
   }
 }
 
-//function used from Karim Maaloul in codepen
-function normalize(v,vmin,vmax,tmin, tmax){
-
-  var nv = Math.max(Math.min(v,vmax), vmin);
-  var dv = vmax-vmin;
-  var pc = (nv-vmin)/dv;
-  var dt = tmax-tmin;
-  var tv = tmin + (pc*dt);
-  return tv;
-
-}

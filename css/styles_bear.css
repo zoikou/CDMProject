@@ -6,21 +6,6 @@
 	background: linear-gradient(#101D42, #8B85C1);
 }
 
-#navholder {
-	position: absolute;
-	left: 0;
-	width: 100%;
-	text-align: center;
-	background-color: transparent;
-	float: none;
-	
-}
-#navbar-collapse {
-	margin-left: 25vh !important;
-}
-.navbar-collapse a{
-	/*color: white !important;*/
-}
 
 .world {
 	position: absolute;
@@ -49,17 +34,26 @@
 
 .header h3 {
 	font-size: 0.585em;
-	margin: 1.5em 0;
+	margin: .5em 0;
 	white-space: nowrap;
 	text-indent: 1em;
-	letter-spacing: 1em;
+	letter-spacing: 1.3em;
 	text-transform: uppercase;
 	color: #FDC5F5;
+}
+.header h2 {
+	font-size: 0.5em;
+	margin: 0.25em 0;
+	white-space: nowrap;
+	text-indent: 1em;
+	letter-spacing: .5em;
+	text-transform: uppercase;
+	color: #DDFFF7;
 }
 
 .score {
 	width: 100%;
-	margin: 2em 0 0;
+	margin: 1em 0 0;
 	text-align: center;
 	white-space: nowrap;
 }
@@ -124,11 +118,49 @@
 }
 
 .message--nowOrNever {
-	font-size: 1.25vw;
+	font-size: 12px;
 	font-family: 'Federo', sans-serif;
-	bottom: 60vh;
+	bottom: 50vh;
 	display: none;
 	text-indent: 0.5em;
+	line-height: 30px;
 	letter-spacing: 0.5em;
 	color: #DDFFF7;
+}
+.source {
+  color:#FDC5F5;
+  font-size:9px;
+}
+
+#navigation{
+  position:absolute;
+  width:100%;
+  margin: auto;
+  bottom:0;
+  margin-bottom:20px;
+  font-family:'Federo', sans-serif;
+  color:#41463D;
+  font-size:15px;
+  letter-spacing:3px;
+  text-transform: uppercase;
+  text-align : center;
+  user-select: none;  
+}
+#navigation a {
+  color:#41463D;
+  
+}
+
+#navigation a:hover {
+  color:#9D8DF1;
+}
+
+
+p {
+    font-weight: 300;
+    line-height: 30px
+}
+
+p {
+    margin: 0 0 15px
 }

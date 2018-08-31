@@ -6,22 +6,6 @@
 	background: linear-gradient(#0AD3FF	, #256EFF);
 }
 
-#navholder {
-	position: absolute;
-	left: 0;
-	width: 100%;
-	text-align: center;
-	background-color: transparent;
-	float: none;
-	
-}
-#navbar-collapse {
-	margin-left: 25vh !important;
-}
-.navbar-collapse a{
-	/*color: white !important;*/
-}
-
 .world {
 	position: absolute;
 	width: 100%;
@@ -49,12 +33,21 @@
 
 .header h3 {
 	font-size: 0.585em;
-	margin: 0.25em 0;
+	margin: 0.5em 0;
 	white-space: nowrap;
 	text-indent: 1em;
 	letter-spacing: 1em;
 	text-transform: uppercase;
 	color: #0D1B2A;
+}
+.header h2 {
+	font-size: 0.55em;
+	margin: 0.25em 0;
+	white-space: nowrap;
+	text-indent: 1em;
+	letter-spacing: .6em;
+	text-transform: uppercase;
+	color: #00FDDC;
 }
 
 .score {
@@ -123,11 +116,48 @@
 }
 
 .message--replay {
-	font-size: 1.25vw;
+	font-size: 12px;
 	font-family: 'Federo', sans-serif;
-	bottom: 60vh;
+	bottom: 50vh;
 	display: none;
 	text-indent: 0.5em;
+	line-height: 30px;
 	letter-spacing: 0.5em;
 	color: #00FDDC;
+}
+.source {
+  color:#0D1B2A;
+  font-size:9px;
+}
+
+#navigation{
+  position:absolute;
+  width:100%;
+  margin: auto;
+  bottom:0;
+  margin-bottom:20px;
+  font-family:'Federo', sans-serif;
+  color:#41463D;
+  font-size:15px;
+  letter-spacing:3px;
+  text-transform: uppercase;
+  text-align : center;
+  user-select: none;  
+}
+#navigation a {
+  color:#41463D;
+  
+}
+
+#navigation a:hover {
+  color:#9D8DF1;
+}
+
+p {
+    font-weight: 300;   
+    line-height: 30px
+}
+
+p {
+    margin: 0 0 15px
 }

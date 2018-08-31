@@ -19,6 +19,19 @@ var oldTime = new Date().getTime();
 var rubbishPool = [];
 var particlesContainer = [];
 var particlesInUse = [];
+//audios downloaded from https://freesound.org/
+var audio = new Audio('assets/audio/tone3.wav');
+var audio2 = new Audio('assets/audio/wrong.wav');
+
+//SCENE VARIABLES
+var turtle, sea;
+
+//THREE RELATED VARIABLES
+var scene, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH, renderer, container, clock, controls;
+var mousePos={x:0, y:0};
+
+//LIGHTS
+var hemisphereLight, shadowLight, ambientLight;
 
 function resetGame(){
   game = {speed:.00050,
@@ -62,9 +75,6 @@ function resetGame(){
 
 
 
-//THREE RELATED VARIABLES
-var scene, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH, renderer, container, clock, controls;
-
 function createScene(){
   HEIGHT= window.innerHeight;
   WIDTH= window.innerWidth;
@@ -72,7 +82,7 @@ function createScene(){
   //create the scene
   scene= new THREE.Scene();
   //create a fog effect
-  scene.fog = new THREE.Fog(0x38AECC, 100, 950);
+  scene.fog = new THREE.Fog(Colors.lightblue, 100, 950);
   //create a clock object
   clock = new THREE.Clock();
   //create the camera
@@ -117,9 +127,6 @@ function createScene(){
 }
 
 
-
-var hemisphereLight, shadowLight, ambientLight;
-
 //ADD LIGHTS IN THE SCENE
 function createLights(){
   //a hemisphere light is a gradient light
@@ -156,7 +163,7 @@ function createLights(){
   scene.add(ambientLight);
 }
 
-var turtleModel = function (){
+turtleModel = function (){
   this.mesh = new THREE.Object3D();
   this.mesh.name = "turtle";
   
@@ -189,6 +196,7 @@ var turtleModel = function (){
   this.head.receiveShadow = true;
   this.mesh.add(this.head);
 
+  //create the mouth
   var geomouth = new THREE.BoxGeometry(17,5,20,1,1,1);
   var matmouth = new THREE.MeshPhongMaterial({color: Colors.green, shading: THREE.FlatShading});
   this.mouth = new THREE.Mesh(geomouth, matmouth);
@@ -197,7 +205,8 @@ var turtleModel = function (){
   this.mouth.castShadow = true;
   this.mouth.receiveShadow = true;
   this.mesh.add(this.mouth);
-
+  
+  //the eye geometries
   var geomeyebig1 = new THREE.BoxGeometry(6,6,1,1,1,1);
   var mateyebig1 = new THREE.MeshPhongMaterial({color: Colors.softwhite, shading: THREE.FlatShading});
   var eyebig1 = new THREE.Mesh(geomeyebig1, mateyebig1);
@@ -257,6 +266,7 @@ var turtleModel = function (){
   leg1.receiveShadow = true;
   this.mesh.add(leg1);
 
+  //animate the legs using TWEEN.js
   new TWEEN.Tween({val: -5})
       .to({val: -15}, 2000)
       .easing(TWEEN.Easing.Quartic.Out)
@@ -284,7 +294,7 @@ var turtleModel = function (){
       })
       .start();
 
-
+  //small leg geometry
   var geomlegsmall1 = new THREE.BoxGeometry(15,10,20,1,1,1);
   var matlegsmall1 = new THREE.MeshPhongMaterial({color: Colors.darkgrey, shading: THREE.FlatShading});
   geomlegsmall1.vertices[0].y-=5;
@@ -303,6 +313,7 @@ var turtleModel = function (){
   legsmall1.receiveShadow = true;
   this.mesh.add(legsmall1);
 
+  // leg 2 big geometry
   var geomleg2 = new THREE.BoxGeometry(25,10,50,1,1,1);
   var matleg2 = new THREE.MeshPhongMaterial({color: Colors.darkgrey, shading: THREE.FlatShading});
   geomleg2.vertices[1].y-=5;
@@ -320,7 +331,8 @@ var turtleModel = function (){
   leg2.castShadow = true;
   leg2.receiveShadow = true;
   this.mesh.add(leg2);
-
+ 
+  //animate the leg 2 using TWEEN.js
   new TWEEN.Tween({val: -5})
       .to({val: -15}, 2000)
       .easing(TWEEN.Easing.Quartic.Out)
@@ -473,7 +485,9 @@ for(var i=0; i<this.nFishGroups; i++){
 }
 
 bottle = function (){
+  //create an empty container
   this.mesh = new THREE.Object3D();
+  //create the bottle geometry
   var geomBottle = new THREE.CylinderGeometry(3,3,14,10,10);
   // create the material 
   var matBottle = new THREE.MeshPhongMaterial({
@@ -503,17 +517,20 @@ bottle = function (){
 }
 
 bottle.prototype.update = function(){
+  //rotate the bottle randomly in 'z' and 'y' axis
   this.mesh.rotation.z += Math.random()*.02;
   this.mesh.rotation.y += Math.random()*.02;
 }
 
 
 straw = function(){
+  //straw geometry
   var geomStraw= new THREE.CylinderGeometry(.6,.6,14,3,3);
   var matStraw = new THREE.MeshPhongMaterial({
     color:Colors.red,
     shading:THREE.FlatShading,
   });
+  //modify the vertices of the geometry
   geomStraw.vertices[0].x+=3;
   geomStraw.vertices[1].x+=3;
   geomStraw.vertices[2].x+=3;
@@ -529,7 +546,7 @@ straw = function(){
 straw.prototype.update = function(){
   var timeElapsed = clock.getElapsedTime();
   var x= timeElapsed*5 + Math.random();
-  //this.mesh.scale.y= (Math.sin(x) + 1) / 2 + 0.8; 
+  //scale and rotate the mesh randomly
   this.mesh.scale.z= (noise.simplex2(x, x) + 1) / 2 + 0.1;
   this.mesh.rotation.z += Math.random()*.05;
   this.mesh.rotation.y += Math.random()*.05;
@@ -537,6 +554,7 @@ straw.prototype.update = function(){
 
 
 plastic = function(){
+   //use a loader to load the plastic texture
     var loader = new THREE.TextureLoader();
 
     var plasticTexture = loader.load( 'assets/textures/plasticW.jpg' );
@@ -620,6 +638,7 @@ RubbishHolder = function (){
 RubbishHolder.prototype.spawnRubbish = function(){
   var nRubbish = 3;
 
+  //spawn random rubbish (straw, bootle and plastic) 
   for (var i=0; i<nRubbish; i++){
     var rubbish;
     if (rubbishPool.length) {
@@ -638,7 +657,8 @@ RubbishHolder.prototype.spawnRubbish = function(){
      
       
     }
-
+    
+    //set the position of the newly spawn rubbish
     rubbish.angle = - (i*0.1);
     rubbish.distance = game.seaRadius + game.turtleDefaultHeight + (-1 + Math.random() * 2) * (game.turtleAmpHeight-20);
     rubbish.mesh.position.y = -game.seaRadius + Math.sin(rubbish.angle)*rubbish.distance;
@@ -661,15 +681,16 @@ RubbishHolder.prototype.rotateRubbish = function(){
     rubbish.angle += game.speed*deltaTime*game.rubbishSpeed;
 
     if (rubbish.angle > Math.PI*2) rubbish.angle -= Math.PI*2;
-
+    
+    //set the position in regards to the scene radius using sine and cosine equations
     rubbish.mesh.position.y = -game.seaRadius + Math.sin(rubbish.angle)*rubbish.distance;
     rubbish.mesh.position.x = Math.cos(rubbish.angle)*rubbish.distance;
     
-
+    //get the distance between the turtle and the rubbish
     var diffPos = turtle.mesh.position.clone().sub(rubbish.mesh.position.clone());
     var d = diffPos.length();
+    //check for collision among the turtle and the rubbish
     if (d<game.rubbishDistanceTolerance){
-      //particlesHolder.spawnParticles(ennemy.mesh.position.clone(), 15, Colors.red, 3);
 
       rubbishPool.unshift(this.rubbishInUse.splice(i,1)[0]);
       this.mesh.remove(rubbish.mesh);
@@ -678,6 +699,7 @@ RubbishHolder.prototype.rotateRubbish = function(){
       ambientLight.intensity = 2;
       openMouth = true;
       
+      //animate the opening of the mouth
       new TWEEN.Tween({val: turtle.head.position.y - 12})
       .to({val: turtle.head.position.y - 17}, 250)
       .easing(TWEEN.Easing.Quartic.Out)
@@ -691,7 +713,7 @@ RubbishHolder.prototype.rotateRubbish = function(){
         turtle.mouth.position.y = turtle.head.position.y - 12;
       })
       .start();
-
+      audio.play();
       removeEnergy();
       i--;
     }else if (rubbish.angle > Math.PI){
@@ -702,14 +724,13 @@ RubbishHolder.prototype.rotateRubbish = function(){
   }
 }
 
-
+//create the rubbish holder
 function createRubbish(){
   rubbishHolder = new RubbishHolder();
   scene.add(rubbishHolder.mesh);
 }
 
-var turtle;
-
+//create the turtle object
 function createTurtle(){
   turtle = new turtleModel();
   turtle.mesh.scale.set(.40, .40, .40);
@@ -717,18 +738,14 @@ function createTurtle(){
   scene.add(turtle.mesh);  
 }
 
-var sea;
-
+//create the sea object
 function createSea(){
   sea = new Sea();
   sea.mesh.position.y = -700;
   scene.add(sea.mesh);
 }
 
-var mousePos={x:0, y:0};
-
-
-
+//LOOP FUNCTION
 function loop(){
 
   newTime = new Date().getTime();
@@ -747,8 +764,10 @@ function loop(){
     })
   });
   
+  //check the status of the game
   if (game.status=="playing"){
-
+    
+    //check if a new rubbish should be spawn
     if (Math.floor(game.distance)%game.distanceForRubbishSpawn == 0 && Math.floor(game.distance) > game.rubbishLastSpawn){
       game.rubbishLastSpawn = Math.floor(game.distance);
       rubbishHolder.spawnRubbish();
@@ -757,6 +776,7 @@ function loop(){
     updateTurtle();
     updateDistance();
     updateEnergy();
+
   }else if(game.status=="gameover"){
     game.speed *= .99;
     turtle.mesh.rotation.z += (-Math.PI/2 - turtle.mesh.rotation.z)*.0002*deltaTime;
@@ -766,6 +786,7 @@ function loop(){
 
     if (turtle.mesh.position.y <-200){
       showReplay();
+      audio2.play();
       game.status = "waitingReplay";
 
     }
@@ -778,13 +799,14 @@ function loop(){
   renderer.render(scene, camera);
   //controls.update();
   requestAnimationFrame(loop);
-
 }
 
+//a function to update the distance covered
 function updateDistance(){
   game.distance += game.speed*deltaTime*game.ratioSpeedDistance;
 }
 
+//a function to update the appearence of the energy bar
 function updateEnergy(){
   energyBar.style.right = (100-game.energy)+"%";
   energyBar.style.backgroundColor = (game.energy<50)? "#f25346" : "#0D1B2A";
@@ -800,13 +822,16 @@ function updateEnergy(){
   }
 }
 
+//remove the turtle energy 
 function removeEnergy(){
   game.energy -= game.rubbishValue;
   game.energy = Math.max(0, game.energy);
 }
+
+//update the turtle's and camera's position
 function updateTurtle(){
-   //the turtle will move between -100 and 100 on the horizontal axis,
-   //and between 25 and 175 on the vertical axis
+
+   //the turtle will move between 25 and 175 on the vertical axis
    //depending on the mouse position varying between -1 and 1 on both axis
    //to achieve that a normalized function is used
 
@@ -853,7 +878,7 @@ function hideReplay(){
   replayMessage.style.display="none";
 }
 
-//function used from Karim Maaloul in codepen
+//function used from Karim Maaloul in codepen.io
 function normalize(v,vmin,vmax,tmin, tmax){
 
   var nv = Math.max(Math.min(v,vmax), vmin);
@@ -895,6 +920,9 @@ function init(){
 
 window.addEventListener('load', init, false);
 
+
+
+//EVENT LISTENER FUNCTIONS
 
 function handleWindowResize(){
   //update height and width of the renderer and the camera

@@ -9,7 +9,7 @@ function init() {
     clock = new THREE.Clock();
 	// camera
 	camera = new THREE.PerspectiveCamera(
-		30, // field of view
+		25, // field of view
 		WIDTH/HEIGHT, // aspect ratio
 		1, // near clipping plane
 		1000 // far clipping plane
@@ -17,7 +17,7 @@ function init() {
 	
 	camera.position.x = 0;
 	camera.position.y = -10;
-	camera.position.z = 10;
+	camera.position.z = 40;
 	camera.lookAt(new THREE.Vector3(0, 0, 0));
 
 	var particleMat = new THREE.PointsMaterial({
@@ -80,7 +80,7 @@ function update() {
 	var timeElapsed = clock.getElapsedTime();
 	controls.update();
 	renderer.render(scene, camera);
-	particleSystem.rotation.y += 0.003;
+	particleSystem.rotation.y += 0.001;
 	
 	requestAnimationFrame(update);
 }
